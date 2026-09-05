@@ -1,0 +1,602 @@
+// Catering & Event Management ERP - Production Prisma Schema
+// Database: PostgreSQL (Supabase)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// --------------------------------------------------------
+// ENUMS
+// --------------------------------------------------------
+
+enum Role {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+  TERMINATED
+}
+
+enum ProgramType {
+  WEDDING
+  BIRTHDAY
+  CORPORATE
+  RECEPTION
+  ANNIVERSARY
+  OTHER
+}
+
+enum ProgramStatus {
+  UPCOMING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ProgramEmployeeStatus {
+  REQUESTED
+  CONFIRMED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+}
+
+enum LedgerEntryType {
+  CREDIT  // Employee earned money (wage for program/shift, bonus, adjustment)
+  DEBIT   // Money paid to employee (cash disbursement, bank transfer, advance deduction)
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum InvoicePaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum ProductType {
+  CATERING_FOOD
+  RENTAL_EQUIPMENT
+  SERVICE
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  UPI
+  CHEQUE
+  CREDIT_CARD
+  OTHER
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  ALERT
+}
+
+// --------------------------------------------------------
+// 1. USER & AUTHENTICATION
+// --------------------------------------------------------
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  name          String
+  role          Role      @default(ADMIN)
+  phone         String?
+  avatarUrl     String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  employeeProfile   Employee?
+  managedPrograms   Program[]       @relation("ProgramManager")
+  notifications     Notification[]
+  activityLogs      ActivityLog[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+// --------------------------------------------------------
+// 2. EMPLOYEE TYPE (Designation / Category)
+// --------------------------------------------------------
+
+model EmployeeType {
+  id                   String     @id @default(uuid())
+  name                 String     @unique // e.g. "Supervisor", "Service Boy", "Captain", "Hosting Girl"
+  description          String?
+  defaultWagePerEvent  Decimal    @default(0.00) @db.Decimal(10, 2)
+  isActive             Boolean    @default(true)
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  employees            Employee[]
+
+  @@map("employee_types")
+}
+
+// --------------------------------------------------------
+// 3. EMPLOYEE
+// --------------------------------------------------------
+
+model Employee {
+  id                String         @id @default(uuid())
+  userId            String?        @unique
+  user              User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  employeeTypeId    String
+  employeeType      EmployeeType   @relation(fields: [employeeTypeId], references: [id], onDelete: Restrict)
+
+  code              String         @unique // e.g. EMP-101
+  name              String
+  phone             String
+  email             String?
+  address           String?
+  emergencyContact  String?
+  
+  wagePerEvent      Decimal        @default(0.00) @db.Decimal(10, 2) // Wage paid per event/program worked
+  status            EmployeeStatus @default(ACTIVE)
+  joinDate          DateTime       @default(now())
+  
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  programEmployees  ProgramEmployee[]
+  attendances       ProgramAttendance[]
+  ledgerPayments    EmployeePayment[]
+
+  @@index([code])
+  @@index([employeeTypeId])
+  @@index([status])
+  @@index([phone])
+  @@map("employees")
+}
+
+// --------------------------------------------------------
+// 4. CUSTOMER
+// --------------------------------------------------------
+
+model Customer {
+  id              String            @id @default(uuid())
+  code            String            @unique // e.g. CUST-1001
+  name            String
+  companyName     String?
+  phone           String
+  email           String?
+  address         String?
+  city            String?
+  notes           String?
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  programs        Program[]
+  invoices        Invoice[]
+  payments        CustomerPayment[]
+
+  @@index([code])
+  @@index([phone])
+  @@index([name])
+  @@map("customers")
+}
+
+// --------------------------------------------------------
+// 5. PROGRAM (Event: Wedding, Birthday, Corporate, etc.)
+// --------------------------------------------------------
+
+model Program {
+  id                  String             @id @default(uuid())
+  code                String             @unique // e.g. EVT-2026-001
+  title               String             // e.g. Sharma Wedding Grand Reception
+  type                ProgramType        @default(WEDDING)
+  status              ProgramStatus      @default(UPCOMING)
+
+  customerId          String
+  customer            Customer           @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  managerId           String?
+  manager             User?              @relation("ProgramManager", fields: [managerId], references: [id], onDelete: SetNull)
+
+  eventDate           DateTime
+  startTime           String             // e.g. "17:00"
+  endTime             String             // e.g. "23:00"
+  venueName           String
+  venueAddress        String
+  expectedGuests      Int                @default(0)
+  requiredStaffCount  Int                @default(0)
+
+  budget              Decimal            @default(0.00) @db.Decimal(12, 2)
+  notes               String?
+
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  programEmployees    ProgramEmployee[]
+  attendances         ProgramAttendance[]
+  employeePayments    EmployeePayment[]
+  invoices            Invoice[]
+  expenses            Expense[]
+
+  @@index([code])
+  @@index([customerId])
+  @@index([eventDate])
+  @@index([status])
+  @@map("programs")
+}
+
+// --------------------------------------------------------
+// 6. PROGRAM EMPLOYEE (Join & Confirmation Workflow)
+// --------------------------------------------------------
+
+model ProgramEmployee {
+  id            String                @id @default(uuid())
+  programId     String
+  program       Program               @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  employeeId    String
+  employee      Employee              @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  status        ProgramEmployeeStatus @default(REQUESTED) // REQUESTED -> CONFIRMED -> COMPLETED
+  assignedRole  String?               // Optional specific assignment (e.g. "Buffet Station 1")
+  
+  requestedAt   DateTime              @default(now())
+  confirmedAt   DateTime?
+  confirmedBy   String?               // User ID or name of Admin who confirmed
+  notes         String?
+
+  @@unique([programId, employeeId])
+  @@index([programId])
+  @@index([employeeId])
+  @@index([status])
+  @@map("program_employees")
+}
+
+// --------------------------------------------------------
+// 7. PROGRAM ATTENDANCE
+// --------------------------------------------------------
+
+model ProgramAttendance {
+  id            String           @id @default(uuid())
+  programId     String
+  program       Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  employeeId    String
+  employee      Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  date          DateTime         @default(now())
+  checkInTime   DateTime?
+  checkOutTime  DateTime?
+  hoursWorked   Decimal?         @db.Decimal(5, 2)
+  status        AttendanceStatus @default(PRESENT)
+  verifiedBy    String?          // User ID or name
+  remarks       String?
+
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@unique([programId, employeeId, date])
+  @@index([programId])
+  @@index([employeeId])
+  @@index([date])
+  @@map("program_attendances")
+}
+
+// --------------------------------------------------------
+// 8. EMPLOYEE PAYMENT & FINANCIAL LEDGER
+// --------------------------------------------------------
+// Credit = employee earned money (e.g. ₹800 earned from Wedding Program)
+// Debit  = money paid to employee (e.g. ₹800 paid in Cash)
+// Balance = sum(CREDIT) - sum(DEBIT) computed dynamically via ledger history
+
+model EmployeePayment {
+  id                String          @id @default(uuid())
+  transactionNumber String          @unique // e.g. TXN-EMP-2026-0001
+  
+  employeeId        String
+  employee          Employee        @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  programId         String?         // Optional: link credit/debit to a specific program
+  program           Program?        @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  type              LedgerEntryType // CREDIT (earning) or DEBIT (disbursal)
+  amount            Decimal         @db.Decimal(10, 2)
+  
+  paymentMethod     PaymentMethod?  // CASH, BANK_TRANSFER, UPI, etc.
+  status            PaymentStatus   @default(PAID) // PENDING, APPROVED, PAID, CANCELLED
+  transactionDate   DateTime        @default(now())
+  
+  referenceNo       String?         // UTR / Cheque / Slip #
+  description       String          // e.g. "Shift wages for Wedding Program (8 hrs @ ₹100/hr)"
+  
+  createdBy         String?         // Admin user ID
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([employeeId])
+  @@index([programId])
+  @@index([type])
+  @@index([status])
+  @@index([transactionDate])
+  @@map("employee_payments")
+}
+
+// --------------------------------------------------------
+// 9. PRODUCT CATEGORY
+// --------------------------------------------------------
+
+model ProductCategory {
+  id          String       @id @default(uuid())
+  name        String       @unique // e.g. "Starters", "Main Course", "Chafing Dishes", "Linens", "Cutlery"
+  description String?
+  type        ProductType  @default(CATERING_FOOD)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  products    Product[]
+
+  @@map("product_categories")
+}
+
+// --------------------------------------------------------
+// 10. PRODUCT
+// --------------------------------------------------------
+
+model Product {
+  id            String          @id @default(uuid())
+  code          String          @unique // e.g. PRD-CAT-01, PRD-RNT-05
+  name          String
+  
+  categoryId    String
+  category      ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  type          ProductType     @default(CATERING_FOOD) // CATERING_FOOD, RENTAL_EQUIPMENT, SERVICE
+  unit          String          // plate, piece, set, kg, hour
+  sellingPrice  Decimal         @default(0.00) @db.Decimal(10, 2)
+  costPrice     Decimal         @default(0.00) @db.Decimal(10, 2)
+  stockQuantity Int             @default(0)
+  minStockAlert Int             @default(10)
+  isActive      Boolean         @default(true)
+  description   String?
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  invoiceItems  InvoiceItem[]
+
+  @@index([code])
+  @@index([categoryId])
+  @@index([type])
+  @@index([isActive])
+  @@map("products")
+}
+
+// --------------------------------------------------------
+// 11. INVOICE
+// --------------------------------------------------------
+
+model Invoice {
+  id                String               @id @default(uuid())
+  invoiceNumber     String               @unique // e.g. INV-2026-0042
+
+  customerId        String
+  customer          Customer             @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  programId         String?
+  program           Program?             @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  issueDate         DateTime             @default(now())
+  dueDate           DateTime
+  
+  subtotal          Decimal              @default(0.00) @db.Decimal(12, 2)
+  taxRate           Decimal              @default(0.00) @db.Decimal(5, 2)
+  taxAmount         Decimal              @default(0.00) @db.Decimal(12, 2)
+  discount          Decimal              @default(0.00) @db.Decimal(12, 2)
+  grandTotal        Decimal              @default(0.00) @db.Decimal(12, 2)
+  paidAmount        Decimal              @default(0.00) @db.Decimal(12, 2)
+  outstandingAmount Decimal              @default(0.00) @db.Decimal(12, 2)
+
+  status            InvoicePaymentStatus @default(UNPAID)
+  notes             String?
+  terms             String?
+
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  items             InvoiceItem[]
+  customerPayments  CustomerPayment[]
+
+  @@index([invoiceNumber])
+  @@index([customerId])
+  @@index([programId])
+  @@index([status])
+  @@index([issueDate])
+  @@map("invoices")
+}
+
+// --------------------------------------------------------
+// 12. INVOICE ITEM
+// --------------------------------------------------------
+
+model InvoiceItem {
+  id          String   @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  description String?
+  quantity    Decimal  @default(1) @db.Decimal(10, 2)
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  total       Decimal  @db.Decimal(12, 2)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([invoiceId])
+  @@index([productId])
+  @@map("invoice_items")
+}
+
+// --------------------------------------------------------
+// 13. CUSTOMER PAYMENT
+// --------------------------------------------------------
+
+model CustomerPayment {
+  id            String        @id @default(uuid())
+  receiptNumber String        @unique // e.g. RCP-2026-0012
+
+  customerId    String
+  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  invoiceId     String?
+  invoice       Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  amount        Decimal       @db.Decimal(12, 2)
+  paymentDate   DateTime      @default(now())
+  paymentMethod PaymentMethod @default(BANK_TRANSFER)
+  referenceNo   String?
+  notes         String?
+
+  createdBy     String?
+  createdAt     DateTime      @default(now())
+
+  @@index([receiptNumber])
+  @@index([customerId])
+  @@index([invoiceId])
+  @@index([paymentDate])
+  @@map("customer_payments")
+}
+
+// --------------------------------------------------------
+// 14. EXPENSE
+// --------------------------------------------------------
+
+model Expense {
+  id            String        @id @default(uuid())
+  expenseNumber String        @unique // e.g. EXP-2026-001
+  category      String        // Groceries, Fuel, Transport, Maintenance, Decor, Utility
+  amount        Decimal       @db.Decimal(12, 2)
+  
+  programId     String?
+  program       Program?      @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  expenseDate   DateTime      @default(now())
+  paymentMethod PaymentMethod @default(CASH)
+  payeeName     String?
+  receiptUrl    String?
+  notes         String?
+
+  createdBy     String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([expenseNumber])
+  @@index([programId])
+  @@index([category])
+  @@index([expenseDate])
+  @@map("expenses")
+}
+
+// --------------------------------------------------------
+// 15. NOTIFICATION
+// --------------------------------------------------------
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String?
+  user      User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  isRead    Boolean          @default(false)
+  link      String?
+
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// --------------------------------------------------------
+// 16. ACTIVITY LOG (Audit Trail)
+// --------------------------------------------------------
+
+model ActivityLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  action     String   // e.g. "PROGRAM_CREATED", "EMPLOYEE_CONFIRMED", "PAYMENT_RECORDED"
+  entityType String   // e.g. "Program", "Employee", "Invoice", "EmployeePayment"
+  entityId   String?
+  details    Json?
+  ipAddress  String?
+
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([entityId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+// --------------------------------------------------------
+// 17. BUSINESS SETTINGS
+// --------------------------------------------------------
+
+model BusinessSettings {
+  id                 String   @id @default("default")
+  companyName        String   @default("Royal Heritage Catering & Events")
+  tagline            String?  @default("Premium Catering & Event Management Solutions")
+  email              String   @default("operations@royalheritagecatering.com")
+  phone              String   @default("+1 (555) 234-5678")
+  address            String   @default("450 Banquet Boulevard, Suite 100")
+  city               String   @default("Metropolis")
+  taxId              String?  @default("TAX-99482710")
+  currencySymbol     String   @default("₹")
+  currencyCode       String   @default("INR")
+  defaultTaxRate     Decimal  @default(5.00) @db.Decimal(5, 2)
+  invoicePrefix      String   @default("INV")
+  receiptPrefix      String   @default("RCP")
+  payoutPrefix       String   @default("PAY")
+  termsAndConditions String?
+  updatedAt          DateTime @updatedAt
+
+  @@map("business_settings")
+}
