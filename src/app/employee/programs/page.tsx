@@ -123,10 +123,10 @@ export default function EmployeeProgramsPage() {
             <SearchInput
               value={search}
               onChange={setSearch}
-              placeholder="Search upcoming events, venues or codes..."
+              placeholder="Search programs..."
             />
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
             <Button
               variant="outline"
               size="sm"
@@ -135,13 +135,15 @@ export default function EmployeeProgramsPage() {
             >
               Refresh
             </Button>
-            <Link href="/employee/my-programs">
+            <Link href="/employee/my-programs" className="sm:w-auto">
               <Button
                 variant="secondary"
                 size="sm"
                 rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+                className="w-full"
               >
-                View My Joined Programs
+                <span className="sm:hidden">My Programs</span>
+                <span className="hidden sm:inline">View My Joined Programs</span>
               </Button>
             </Link>
           </div>
@@ -168,8 +170,8 @@ export default function EmployeeProgramsPage() {
         <Card>
           <CardHeader>
             <div>
-              <CardTitle>Upcoming Master Catering Calendar</CardTitle>
-              <CardDescription>
+              <CardTitle>Upcoming Programs</CardTitle>
+              <CardDescription className="hidden sm:block">
                 Browse scheduled wedding receptions and events open for employee shift participation
               </CardDescription>
             </div>
@@ -200,7 +202,79 @@ export default function EmployeeProgramsPage() {
               />
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div>
+              <div className="space-y-3 p-4 md:hidden">
+                {programs.map((prog) => {
+                  const isFull =
+                    prog.requiredStaffCount > 0 &&
+                    prog.confirmedStaffCount >= prog.requiredStaffCount;
+
+                  return (
+                    <div key={prog.id} className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h4 className="truncate text-sm font-semibold text-[#111827]">{prog.title}</h4>
+                          <p className="mt-0.5 font-mono text-[11px] text-[#94A3B8]">{prog.code}</p>
+                        </div>
+                        <Badge variant="orange" size="sm">{prog.type}</Badge>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-[#475569]">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-3.5 w-3.5 shrink-0 text-[#94A3B8]" />
+                          <span>{formatDate(prog.eventDate)}</span>
+                          <Clock className="ml-1 h-3.5 w-3.5 shrink-0 text-[#94A3B8]" />
+                          <span>{prog.startTime} - {prog.endTime}</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#94A3B8]" />
+                          <span className="line-clamp-2">{prog.venueName}{prog.venueAddress ? `, ${prog.venueAddress}` : ""}</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#E5E7EB] pt-3">
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wide text-[#94A3B8]">Status</p>
+                          {prog.myStatus === "CONFIRMED" ? (
+                            <Badge variant="active" size="sm">Confirmed</Badge>
+                          ) : prog.myStatus === "REQUESTED" ? (
+                            <Badge variant="pending" size="sm">Pending</Badge>
+                          ) : prog.myStatus === "REJECTED" ? (
+                            <Badge variant="danger" size="sm">Declined</Badge>
+                          ) : prog.myStatus === "COMPLETED" ? (
+                            <Badge variant="completed" size="sm">Completed</Badge>
+                          ) : (
+                            <span className="text-xs text-[#64748B]">Not requested</span>
+                          )}
+                        </div>
+                        {prog.myStatus === "CONFIRMED" ? (
+                          <Link href="/employee/my-programs">
+                            <Button variant="outline" size="sm" className="h-8 text-xs">View Shift</Button>
+                          </Link>
+                        ) : prog.myStatus === "REQUESTED" ? (
+                          <span className="text-xs font-medium text-amber-700">Requested</span>
+                        ) : prog.myStatus === "REJECTED" ? (
+                          <span className="text-xs text-red-600">Not eligible</span>
+                        ) : isFull ? (
+                          <Button variant="secondary" size="sm" disabled className="h-8 text-xs">Shift Full</Button>
+                        ) : (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            className="h-8 text-xs"
+                            isLoading={joiningId === prog.id}
+                            onClick={() => handleRequestShift(prog.id, prog.title)}
+                          >
+                            Request Shift
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -329,6 +403,7 @@ export default function EmployeeProgramsPage() {
                   })}
                 </TableBody>
               </Table>
+              </div>
             </div>
           )}
         </Card>

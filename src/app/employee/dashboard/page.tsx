@@ -32,8 +32,7 @@ interface EarningsSummary {
   totalPaid: number;
   outstanding: number;
   pendingSettlement: number;
-  hourlyRate: number;
-  dailyRate: number;
+  wagePerEvent: number;
 }
 
 export default function EmployeeDashboardPage() {

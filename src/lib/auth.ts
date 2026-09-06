@@ -36,7 +36,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 /**
  * Signs a JWT with user claims for the session cookie
  */
-export async function signToken(user: SessionUser): Promise<string> {
+export async function signToken(user: SessionUser, rememberMe = true): Promise<string> {
   return new SignJWT({
     id: user.id,
     email: user.email,
@@ -46,7 +46,7 @@ export async function signToken(user: SessionUser): Promise<string> {
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d") // 7 days session
+    .setExpirationTime(rememberMe ? "30d" : "24h")
     .sign(AUTH_SECRET);
 }
 
@@ -71,14 +71,14 @@ export async function verifyToken(token: string): Promise<SessionUser | null> {
 /**
  * Sets the HTTP-only session cookie (Server Actions & Route Handlers)
  */
-export async function setSessionCookie(token: string) {
+export async function setSessionCookie(token: string, rememberMe = true) {
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    ...(rememberMe ? { maxAge: 60 * 60 * 24 * 30 } : {}),
   });
 }
 

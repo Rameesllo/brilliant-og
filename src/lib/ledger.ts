@@ -100,7 +100,7 @@ export async function recordShiftWageCredit(params: {
   programId: string;
   amount: number;
   hoursWorked: number;
-  hourlyRate: number;
+  wagePerEvent: number;
   programTitle: string;
   createdBy?: string;
 }) {
@@ -108,7 +108,7 @@ export async function recordShiftWageCredit(params: {
     employeeId: params.employeeId,
     programId: params.programId,
     amount: params.amount,
-    wagePerEvent: params.hourlyRate,
+    wagePerEvent: params.wagePerEvent,
     programTitle: params.programTitle,
     createdBy: params.createdBy,
   });

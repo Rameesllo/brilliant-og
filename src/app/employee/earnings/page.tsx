@@ -13,8 +13,7 @@ interface EarningsSummary {
   totalPaid: number;
   outstanding: number;
   pendingSettlement: number;
-  hourlyRate: number;
-  dailyRate: number;
+  wagePerEvent: number;
   designation: string;
 }
 
@@ -141,7 +140,7 @@ export default function EmployeeEarningsPage() {
                     <Receipt className="w-4 h-4 text-[#6366F1]" />
                   </div>
                   <div className="text-xl font-bold text-[#111827] mt-2">
-                    {summary?.hourlyRate ? `$${summary.hourlyRate.toFixed(2)}/hr` : summary?.dailyRate ? `$${summary.dailyRate.toFixed(2)}/day` : "Standard"}
+                    {summary?.wagePerEvent ? `₹${summary.wagePerEvent.toFixed(2)}/event` : "Standard"}
                   </div>
                   <p className="text-xs text-[#64748B] mt-1 truncate">{summary?.designation || "Active Staff"}</p>
                 </CardContent>

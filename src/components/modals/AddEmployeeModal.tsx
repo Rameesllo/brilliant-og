@@ -16,8 +16,7 @@ export interface AddEmployeeModalProps {
 interface EmployeeTypeOption {
   id: string;
   name: string;
-  defaultHourlyRate: number;
-  defaultDailyRate: number;
+  defaultWagePerEvent: number;
 }
 
 export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
@@ -54,7 +53,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
             setFormData((prev) => ({
               ...prev,
               employeeTypeId: prev.employeeTypeId || first.id,
-              wagePerEvent: prev.wagePerEvent || (first.defaultDailyRate || first.defaultHourlyRate || 700).toFixed(2),
+              wagePerEvent: prev.wagePerEvent || (first.defaultWagePerEvent || 700).toFixed(2),
             }));
           }
         }
@@ -73,7 +72,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
     setFormData((prev) => ({
       ...prev,
       employeeTypeId: newTypeId,
-      wagePerEvent: selected ? (selected.defaultDailyRate || selected.defaultHourlyRate).toFixed(2) : prev.wagePerEvent,
+      wagePerEvent: selected ? selected.defaultWagePerEvent.toFixed(2) : prev.wagePerEvent,
     }));
   };
 
@@ -108,8 +107,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
           address: formData.address.trim() || undefined,
           emergencyContact: formData.emergencyContact.trim() || undefined,
           employeeTypeId: formData.employeeTypeId,
-          hourlyRate: wage,
-          dailyRate: wage,
+          wagePerEvent: wage,
           status: "ACTIVE",
         }),
       });
@@ -200,7 +198,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
             onChange={(e) => handleTypeChange(e.target.value)}
             options={types.map((t) => ({
               value: t.id,
-              label: `${t.name} (₹${(t.defaultDailyRate || t.defaultHourlyRate || 0).toLocaleString()}/event)`,
+              label: `${t.name} (₹${t.defaultWagePerEvent.toLocaleString()}/event)`,
             }))}
             disabled={isLoadingTypes}
           />

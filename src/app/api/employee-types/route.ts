@@ -30,7 +30,7 @@ export async function GET() {
         id: true,
         name: true,
         description: true,
-        defaultDailyRate: true,
+        defaultWagePerEvent: true,
       },
     });
 
@@ -39,7 +39,7 @@ export async function GET() {
         id: t.id,
         name: t.name,
         description: t.description,
-        defaultWagePerEvent: Number(t.defaultDailyRate),
+        defaultWagePerEvent: Number(t.defaultWagePerEvent),
       })),
     });
   } catch (error) {

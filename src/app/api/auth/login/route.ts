@@ -5,7 +5,7 @@ import { verifyPassword, signToken, setSessionCookie, SessionUser } from "@/lib/
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password } = body;
+    const { email, password, rememberMe = true } = body;
 
     if (!email || !password) {
       return NextResponse.json(
@@ -45,8 +45,8 @@ export async function POST(request: NextRequest) {
     };
 
     // Sign JWT and set HTTP-only cookie
-    const token = await signToken(sessionUser);
-    await setSessionCookie(token);
+    const token = await signToken(sessionUser, Boolean(rememberMe));
+    await setSessionCookie(token, Boolean(rememberMe));
 
     const redirectUrl =
       sessionUser.role === "ADMIN" || sessionUser.role === "MANAGER"

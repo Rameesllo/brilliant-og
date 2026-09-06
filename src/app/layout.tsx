@@ -8,8 +8,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Catering & Event Management ERP",
-  description: "Enterprise Catering and Event Management Operations Software",
+  title: "Brilliant Event",
+  description: "Brilliant Catering & Events Management",
+  icons: {
+    icon: "/brilliant-event-logo.svg",
+    shortcut: "/brilliant-event-logo.svg",
+    apple: "/brilliant-event-logo.svg",
+  },
 };
 
 export default function RootLayout({

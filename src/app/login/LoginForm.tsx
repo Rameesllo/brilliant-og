@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { UtensilsCrossed, Shield, User, ArrowRight, Lock, Mail, AlertCircle } from "lucide-react";
+import Image from "next/image";
+import { Shield, User, ArrowRight, Lock, Mail, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -11,9 +12,10 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "";
 
-  const [email, setEmail] = useState("victoria@royalheritage.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"ADMIN" | "EMPLOYEE">("ADMIN");
+  const [rememberMe, setRememberMe] = useState(true);
+  const [role, setRole] = useState<"ADMIN" | "EMPLOYEE">("EMPLOYEE");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -26,7 +28,7 @@ export function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
       });
 
       const data = await res.json();
@@ -54,22 +56,24 @@ export function LoginForm() {
     setRole(selectedRole);
     setErrorMessage(null);
     setPassword("");
-    if (selectedRole === "ADMIN") {
-      setEmail("victoria@royalheritage.com");
-    } else {
-      setEmail("marcus.vance@royalheritage.com");
-    }
+    setEmail("");
   };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        {/* Brand Icon */}
-        <div className="w-12 h-12 rounded-xl bg-[#F97316] text-white flex items-center justify-center mx-auto shadow-sm">
-          <UtensilsCrossed className="w-6 h-6" />
+        {/* Business Logo */}
+        <div className="w-24 h-24 rounded-full overflow-hidden mx-auto shadow-sm">
+          <Image
+            src="/brilliant-event-logo.svg"
+            alt="Brilliant Event"
+            width={96}
+            height={96}
+            className="w-full h-full object-cover"
+          />
         </div>
         <h1 className="mt-4 text-2xl font-bold tracking-tight text-[#111827]">
-          Catering & Event ERP
+          Brilliant Event
         </h1>
         <p className="mt-1 text-sm text-[#64748B]">
           Sign in to access your operations portal
@@ -137,7 +141,8 @@ export function LoginForm() {
               <label className="flex items-center gap-2 cursor-pointer text-[#475569]">
                 <input
                   type="checkbox"
-                  defaultChecked
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                   className="rounded border-[#CBD5E1] text-[#F97316] focus:ring-[#F97316]"
                 />
                 Remember this device
@@ -171,6 +176,18 @@ export function LoginForm() {
             </p>
           </div>
         </div>
+
+        <p className="mt-6 text-center text-xs text-[#94A3B8]">
+          Web built by{" "}
+          <a
+            href="https://portfolio-og-sandy.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-[#64748B] hover:text-[#F97316] transition-colors"
+          >
+            Ramees Llo
+          </a>
+        </p>
       </div>
     </div>
   );

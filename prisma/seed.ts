@@ -40,17 +40,32 @@ async function main() {
   const employeePasswordHash = await bcrypt.hash("employee123", 10);
 
   // 2. Admin User
-  const adminUser = await prisma.user.upsert({
-    where: { email: "victoria@royalheritage.com" },
-    update: { passwordHash: adminPasswordHash },
-    create: {
-      email: "victoria@royalheritage.com",
-      passwordHash: adminPasswordHash,
-      name: "Victoria Sterling",
-      role: Role.ADMIN,
-      phone: "+1 (555) 019-2831",
-    },
-  });
+  const existingAdmin = await prisma.user.findUnique({ where: { email: "rameesllo78@gmail.com" } });
+  const legacyAdmin = await prisma.user.findUnique({ where: { email: "victoria@royalheritage.com" } });
+  const adminUser = existingAdmin
+    ? await prisma.user.update({
+        where: { id: existingAdmin.id },
+        data: { passwordHash: adminPasswordHash, name: "Ramees Llo", role: Role.ADMIN },
+      })
+    : legacyAdmin
+      ? await prisma.user.update({
+          where: { id: legacyAdmin.id },
+          data: {
+            email: "rameesllo78@gmail.com",
+            passwordHash: adminPasswordHash,
+            name: "Ramees Llo",
+            role: Role.ADMIN,
+          },
+        })
+      : await prisma.user.create({
+          data: {
+            email: "rameesllo78@gmail.com",
+            passwordHash: adminPasswordHash,
+            name: "Ramees Llo",
+            role: Role.ADMIN,
+            phone: "+1 (555) 019-2831",
+          },
+        });
   console.log("✓ Admin User initialized:", adminUser.email);
 
   // 3. Employee Types (Wages per work/event — NOT hourly, NOT daily)

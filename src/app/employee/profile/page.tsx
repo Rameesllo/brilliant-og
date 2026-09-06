@@ -15,7 +15,7 @@ interface ProfileState {
   phone: string;
   designation: string;
   department: string;
-  hourlyRate: string;
+  wagePerEvent: string;
   emergencyContact: string;
   address: string;
 }
@@ -33,7 +33,7 @@ export default function EmployeeProfilePage() {
     phone: "",
     designation: "",
     department: "",
-    hourlyRate: "0.00",
+    wagePerEvent: "0.00",
     emergencyContact: "",
     address: "",
   });
@@ -53,7 +53,7 @@ export default function EmployeeProfilePage() {
             phone: data.profile.phone || "",
             designation: data.profile.designation || "",
             department: data.profile.department || "",
-            hourlyRate: String(data.profile.hourlyRate ?? "0.00"),
+            wagePerEvent: String(data.profile.wagePerEvent ?? "0.00"),
             emergencyContact: data.profile.emergencyContact || "",
             address: data.profile.address || "",
           });
@@ -195,7 +195,7 @@ export default function EmployeeProfilePage() {
               <Input
                 label="Hourly Compensation ($)"
                 disabled
-                value={`$${profile.hourlyRate}/hr`}
+                value={`₹${profile.wagePerEvent}/event`}
               />
             </div>
 

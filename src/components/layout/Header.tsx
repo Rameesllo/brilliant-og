@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
@@ -22,18 +22,67 @@ export interface HeaderProps {
   onMobileMenuToggle?: () => void;
 }
 
+interface HeaderNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: "INFO" | "WARNING" | "SUCCESS" | "ALERT";
+  isRead: boolean;
+  link: string;
+  createdAt: string;
+}
+
+function formatNotificationTime(createdAt: string) {
+  const elapsedMinutes = Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000);
+  if (elapsedMinutes < 1) return "Just now";
+  if (elapsedMinutes < 60) return `${elapsedMinutes} min ago`;
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  if (elapsedHours < 24) return `${elapsedHours} hr ago`;
+  return `${Math.floor(elapsedHours / 24)} day ago`;
+}
+
 export const Header: React.FC<HeaderProps> = ({
   title,
   breadcrumbs,
   userRole = "ADMIN",
-  userName = userRole === "ADMIN" ? "Victoria Sterling" : "Marcus Vance",
-  userEmail = userRole === "ADMIN" ? "victoria@royalheritage.com" : "marcus@royalheritage.com",
+  userName = userRole === "ADMIN" ? "Ramees Llo" : "Ramees Llo",
+  userEmail = userRole === "ADMIN" ? "rameesllo78@gmail.com" : "rameesllo78@gmail.com",
   onMobileMenuToggle,
 }) => {
   const router = useRouter();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<HeaderNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/notifications?limit=5")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) {
+          setNotifications(data.notifications || []);
+          setUnreadCount(data.unreadCount || 0);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleNotificationClick = async (notification: HeaderNotification) => {
+    if (!notification.isRead) {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [notification.id] }),
+      }).catch(() => {});
+      setNotifications((current) => current.map((item) =>
+        item.id === notification.id ? { ...item, isRead: true } : item
+      ));
+      setUnreadCount((count) => Math.max(0, count - 1));
+    }
+    setNotificationsOpen(false);
+    if (notification.link) router.push(notification.link);
+  };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -100,7 +149,11 @@ export const Header: React.FC<HeaderProps> = ({
             aria-label="Notifications"
           >
             <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#F97316] rounded-full ring-2 ring-white" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-[#F97316] text-white text-[9px] font-bold rounded-full ring-2 ring-white flex items-center justify-center">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
           </button>
 
           {/* Notifications Dropdown */}
@@ -108,24 +161,25 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl border border-[#E5E7EB] shadow-lg py-2 z-50 animate-in fade-in zoom-in-95">
               <div className="px-4 py-2 border-b border-[#F1F5F9] flex items-center justify-between">
                 <span className="text-xs font-semibold text-[#111827]">Notifications</span>
-                <span className="text-[11px] font-medium text-[#F97316]">3 new</span>
+                <span className="text-[11px] font-medium text-[#F97316]">
+                  {unreadCount ? `${unreadCount} new` : "All read"}
+                </span>
               </div>
               <div className="divide-y divide-[#F1F5F9] text-xs">
-                <div className="px-4 py-2.5 hover:bg-[#F8FAFC] transition-colors">
-                  <p className="font-medium text-[#111827]">Staff assigned to Malhotra Wedding</p>
-                  <p className="text-[11px] text-[#64748B] mt-0.5">18 of 20 staff confirmed attendance</p>
-                  <span className="text-[10px] text-[#94A3B8]">15 mins ago</span>
-                </div>
-                <div className="px-4 py-2.5 hover:bg-[#F8FAFC] transition-colors">
-                  <p className="font-medium text-[#111827]">Low Stock: Roll-Top Chafing Dish</p>
-                  <p className="text-[11px] text-[#64748B] mt-0.5">Only 4 units remaining in inventory</p>
-                  <span className="text-[10px] text-[#94A3B8]">1 hour ago</span>
-                </div>
-                <div className="px-4 py-2.5 hover:bg-[#F8FAFC] transition-colors">
-                  <p className="font-medium text-[#111827]">New Customer Payment Received</p>
-                  <p className="text-[11px] text-[#64748B] mt-0.5">$7,000.00 from Apex FinTech</p>
-                  <span className="text-[10px] text-[#94A3B8]">3 hours ago</span>
-                </div>
+                {notifications.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-[11px] text-[#94A3B8]">No notifications yet</p>
+                ) : notifications.map((notification) => (
+                  <button
+                    key={notification.id}
+                    type="button"
+                    onClick={() => handleNotificationClick(notification)}
+                    className={`w-full text-left px-4 py-2.5 hover:bg-[#F8FAFC] transition-colors ${notification.isRead ? "" : "bg-[#FFF7ED]/60"}`}
+                  >
+                    <p className="font-medium text-[#111827]">{notification.title}</p>
+                    <p className="text-[11px] text-[#64748B] mt-0.5">{notification.message}</p>
+                    <span className="text-[10px] text-[#94A3B8]">{formatNotificationTime(notification.createdAt)}</span>
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -142,7 +196,10 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex items-center gap-2.5 p-1 sm:px-2 py-1 rounded-lg hover:bg-[#F8FAFC] border border-transparent hover:border-[#E5E7EB] transition-colors"
           >
             <div className="w-8 h-8 rounded-full bg-[#FFF7ED] border border-[#FED7AA] flex items-center justify-center text-xs font-bold text-[#EA580C]">
-              {userName.split(" ").map(n => n[0]).join("")}
+              <User className="w-4 h-4 sm:hidden" aria-hidden="true" />
+              <span className="hidden sm:block">
+                {userName.split(" ").map(n => n[0]).join("")}
+              </span>
             </div>
             <div className="hidden sm:block text-left">
               <div className="flex items-center gap-1.5">

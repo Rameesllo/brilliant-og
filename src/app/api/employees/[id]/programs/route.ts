@@ -34,7 +34,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Resolve employee id
     const employee = await prisma.employee.findFirst({
       where: { OR: [{ id: requestedId }, { userId: requestedId }] },
-      select: { id: true, hourlyRate: true, dailyRate: true },
+      select: { id: true, wagePerEvent: true },
     });
 
     if (!employee) {
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
       // If no explicit credit record yet, but attendance worked hours exist, estimate earned
       if (earned === 0 && attendance && attendance.hoursWorked) {
-        earned = Number(attendance.hoursWorked) * Number(employee.hourlyRate);
+        earned = Number(employee.wagePerEvent);
       }
 
       const outstanding = Math.max(0, earned - paid);

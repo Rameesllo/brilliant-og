@@ -28,8 +28,7 @@ interface EmployeeItem {
     name: string;
     description: string;
   };
-  hourlyRate: number;
-  dailyRate: number;
+  wagePerEvent: number;
   status: "ACTIVE" | "INACTIVE" | "ON_LEAVE" | "TERMINATED";
   programsCount: number;
   totalEarned: number;
@@ -242,8 +241,8 @@ export default function AdminEmployeesPage() {
                 options={[
                   { value: "name:asc", label: "Sort: Name (A–Z)" },
                   { value: "name:desc", label: "Sort: Name (Z–A)" },
-                  { value: "dailyRate:desc", label: "Sort: Event Wage (Highest)" },
-                  { value: "dailyRate:asc", label: "Sort: Event Wage (Lowest)" },
+                  { value: "wagePerEvent:desc", label: "Sort: Event Wage (Highest)" },
+                  { value: "wagePerEvent:asc", label: "Sort: Event Wage (Lowest)" },
                   { value: "status:asc", label: "Sort: Status" },
                   { value: "createdAt:desc", label: "Sort: Recently Added" },
                 ]}
@@ -376,7 +375,7 @@ export default function AdminEmployeesPage() {
                           {/* Wages (Per Event) */}
                           <TableCell>
                             <div className="text-xs font-semibold text-[#111827]">
-                              {formatCurrency(emp.dailyRate || emp.hourlyRate)}
+                              {formatCurrency(emp.wagePerEvent)}
                             </div>
                             <div className="text-[10px] text-[#64748B]">
                               per work (1 event)

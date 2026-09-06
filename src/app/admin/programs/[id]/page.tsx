@@ -41,8 +41,7 @@ interface StaffMember {
   phone: string;
   email: string | null;
   designation: string;
-  hourlyRate: number;
-  dailyRate: number;
+  wagePerEvent: number;
   status: "REQUESTED" | "CONFIRMED" | "REJECTED" | "CANCELLED" | "COMPLETED";
   assignedRole: string;
   requestedAt: string;
@@ -57,8 +56,7 @@ interface AttendanceRosterItem {
   name: string;
   phone: string;
   designation: string;
-  hourlyRate: number;
-  dailyRate: number;
+  wagePerEvent: number;
   assignedRole: string;
   attendanceId: string | null;
   attendanceDate: string;
@@ -844,9 +842,9 @@ export default function AdminProgramDetailPage({
                       {attendanceList.map((member) => {
                         let wage = 0;
                         if (member.status === "PRESENT" || member.status === "LATE") {
-                          wage = member.hourlyRate > 0 ? member.hourlyRate * (member.hoursWorked || 8) : member.dailyRate;
+                          wage = member.wagePerEvent;
                         } else if (member.status === "HALF_DAY") {
-                          wage = member.hourlyRate > 0 ? member.hourlyRate * (member.hoursWorked || 4) : member.dailyRate / 2;
+                          wage = member.wagePerEvent / 2;
                         }
 
                         return (
@@ -862,9 +860,7 @@ export default function AdminProgramDetailPage({
                               </div>
                             </TableCell>
                             <TableCell className="text-xs text-[#475569]">
-                              {member.hourlyRate > 0
-                                ? `${formatCurrency(member.hourlyRate)}/hr`
-                                : `${formatCurrency(member.dailyRate)}/day`}
+                              {`${formatCurrency(member.wagePerEvent)}/event`}
                             </TableCell>
                             <TableCell>
                               {member.status === "PRESENT" ? (
