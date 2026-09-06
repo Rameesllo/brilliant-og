@@ -112,12 +112,12 @@ export async function GET(
         notes: pmt.notes || "",
       })),
       business: {
-        companyName: businessSettings?.companyName || "Royal Heritage Catering & Events",
+        companyName: businessSettings?.companyName || "Brilliant Catering & Events",
         tagline: businessSettings?.tagline || "Premium Catering & Event Management Solutions",
-        email: businessSettings?.email || "billing@royalheritagecatering.com",
-        phone: businessSettings?.phone || "+1 (555) 234-5678",
-        address: businessSettings?.address || "450 Banquet Boulevard, Suite 100",
-        city: businessSettings?.city || "Metropolis",
+        email: businessSettings?.email || "",
+        phone: businessSettings?.phone || "+91 7034510537",
+        address: businessSettings?.address || "Parappanangadi, malappuram, Kerala, India",
+        city: businessSettings?.city || "Parappanangadi",
         taxId: businessSettings?.taxId || "TAX-99482710",
       },
     });

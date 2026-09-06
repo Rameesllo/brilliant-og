@@ -287,7 +287,7 @@ export default function InvoiceDetailPage() {
     >
       {/* Toast */}
       {toast && (
-        <div className={`mb-4 flex items-center gap-2 p-3.5 rounded-xl text-xs font-medium animate-in fade-in ${
+        <div className={`no-print mb-4 flex items-center gap-2 p-3.5 rounded-xl text-xs font-medium animate-in fade-in ${
           toast.type === "success"
             ? "bg-[#F0FDF4] border border-[#BBF7D0] text-[#15803D]"
             : "bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626]"
@@ -301,7 +301,7 @@ export default function InvoiceDetailPage() {
 
       <div className="space-y-6">
         {/* Top action bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Link href="/admin/invoices">
               <Button variant="ghost" size="sm" leftIcon={<ArrowLeft className="w-4 h-4" />}>
@@ -352,7 +352,7 @@ export default function InvoiceDetailPage() {
         </div>
 
         {/* Collection Progress */}
-        <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 shadow-2xs">
+        <div className="no-print bg-white border border-[#E5E7EB] rounded-xl p-5 shadow-2xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="grid grid-cols-3 gap-6 flex-1">
               <div>
@@ -386,17 +386,17 @@ export default function InvoiceDetailPage() {
         </div>
 
         {/* Main grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="invoice-print-layout grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Invoice Print Area */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="invoice-print-area lg:col-span-2 space-y-4">
             {/* Invoice header */}
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
+            <Card className="invoice-document">
+              <CardContent className="p-4 sm:p-5">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-bold text-[#111827]">{business?.companyName}</h2>
                     <p className="text-xs text-[#64748B] mt-0.5">{business?.tagline}</p>
-                    <div className="mt-3 text-xs text-[#475569] space-y-0.5">
+                    <div className="mt-2 text-xs text-[#475569] space-y-0.5">
                       <p>{business?.address}</p>
                       <p>{business?.city}</p>
                       <p>Tax ID: {business?.taxId}</p>
@@ -406,7 +406,7 @@ export default function InvoiceDetailPage() {
                   </div>
                   <div className="text-right">
                     <div className="font-mono text-xl font-bold text-[#111827]">{invoice.invoiceNumber}</div>
-                    <div className="mt-2 text-xs text-[#64748B] space-y-1">
+                    <div className="mt-1.5 text-xs text-[#64748B] space-y-0.5">
                       <div className="flex justify-between gap-8">
                         <span>Issue Date:</span>
                         <span className="font-medium text-[#111827]">{formatDate(invoice.issueDate)}</span>
@@ -421,10 +421,10 @@ export default function InvoiceDetailPage() {
                   </div>
                 </div>
 
-                <div className="border-t border-[#F1F5F9] mt-5 pt-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="border-t border-[#F1F5F9] mt-3 pt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Bill To */}
                   <div>
-                    <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-2">
+                    <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1">
                       Bill To
                     </h4>
                     <p className="font-semibold text-[#111827]">{customer.name}</p>
@@ -440,7 +440,7 @@ export default function InvoiceDetailPage() {
                   {/* Event */}
                   {program && (
                     <div>
-                      <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-2">
+                      <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1">
                         Event Details
                       </h4>
                       <p className="font-semibold text-[#111827]">{program.title}</p>
@@ -528,7 +528,7 @@ export default function InvoiceDetailPage() {
 
                 {/* Notes & Terms */}
                 {(invoice.notes || invoice.terms) && (
-                  <div className="mt-5 border-t border-[#F1F5F9] pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-[#64748B]">
+                  <div className={`${!invoice.notes ? "no-print " : ""}mt-5 border-t border-[#F1F5F9] pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-[#64748B]`}>
                     {invoice.notes && (
                       <div>
                         <span className="font-semibold text-[#94A3B8] uppercase tracking-wider text-[11px]">Notes</span>
@@ -536,7 +536,7 @@ export default function InvoiceDetailPage() {
                       </div>
                     )}
                     {invoice.terms && (
-                      <div>
+                      <div className="no-print">
                         <span className="font-semibold text-[#94A3B8] uppercase tracking-wider text-[11px]">Terms & Conditions</span>
                         <p className="mt-1">{invoice.terms}</p>
                       </div>
@@ -548,7 +548,7 @@ export default function InvoiceDetailPage() {
           </div>
 
           {/* Right: Sidebar */}
-          <div className="space-y-4">
+          <div className="no-print space-y-4">
             {/* Customer Card */}
             <Card>
               <CardHeader>

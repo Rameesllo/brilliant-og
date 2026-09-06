@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AdminLayout } from "@/components/layout/AdminLayout";
@@ -8,50 +8,15 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from "@/components/ui/Button";
 import { ArrowLeft, PlusCircle, AlertCircle, Loader2 } from "lucide-react";
 
-interface CategoryOption {
-  id: string;
-  name: string;
-  type: string;
-}
-
 export default function AddProductPage() {
   const router = useRouter();
-  const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [formData, setFormData] = useState({
     name: "",
-    type: "CATERING_FOOD",
-    categoryId: "",
-    newCategoryName: "",
-    unit: "plate",
     sellingPrice: "",
-    costPrice: "",
-    stockQuantity: "0",
-    minStockAlert: "10",
-    description: "",
-    isActive: true,
   });
 
-  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/product-categories")
-      .then((res) => (res.ok ? res.json() : { categories: [] }))
-      .then((data) => {
-        setCategories(data.categories || []);
-        if (data.categories?.length > 0) {
-          setFormData((prev) => ({
-            ...prev,
-            categoryId: data.categories[0].id,
-          }));
-        }
-        setIsLoading(false);
-      })
-      .catch(() => {
-        setIsLoading(false);
-      });
-  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -72,11 +37,6 @@ export default function AddProductPage() {
       return;
     }
 
-    if (!formData.unit.trim()) {
-      setError("Inventory measurement unit is required");
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
@@ -85,16 +45,13 @@ export default function AddProductPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formData.name,
-          type: formData.type,
-          categoryId: formData.categoryId || undefined,
-          categoryName: formData.newCategoryName.trim() || undefined,
-          unit: formData.unit,
+          type: "CATERING_FOOD",
+          unit: "plate",
           sellingPrice: Number(formData.sellingPrice || 0),
-          costPrice: Number(formData.costPrice || 0),
-          stockQuantity: parseInt(formData.stockQuantity || "0", 10),
-          minStockAlert: parseInt(formData.minStockAlert || "10", 10),
-          description: formData.description,
-          isActive: formData.isActive,
+          costPrice: 0,
+          stockQuantity: 0,
+          minStockAlert: 10,
+          isActive: true,
         }),
       });
 
@@ -107,24 +64,6 @@ export default function AddProductPage() {
       setIsSubmitting(false);
     }
   };
-
-  if (isLoading) {
-    return (
-      <AdminLayout
-        title="Add Product"
-        breadcrumbs={[
-          { label: "Admin Console" },
-          { label: "Products", href: "/admin/products" },
-          { label: "Add" },
-        ]}
-      >
-        <div className="py-24 flex flex-col items-center justify-center text-[#64748B] gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-[#F97316]" />
-          <span className="text-sm font-medium">Loading catalog categories...</span>
-        </div>
-      </AdminLayout>
-    );
-  }
 
   return (
     <AdminLayout
@@ -161,7 +100,7 @@ export default function AddProductPage() {
                 <div>
                   <CardTitle>Catalog Asset Registration</CardTitle>
                   <CardDescription>
-                    Define specifications, unit pricing, initial stock levels, and reorder alerts
+                    Add a product name and selling price to the catalog.
                   </CardDescription>
                 </div>
               </div>
@@ -186,72 +125,6 @@ export default function AddProductPage() {
 
                 <div>
                   <label className="block text-xs font-semibold text-[#111827] uppercase tracking-wider mb-2">
-                    Asset Type <span className="text-[#DC2626]">*</span>
-                  </label>
-                  <select
-                    name="type"
-                    value={formData.type}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316]"
-                  >
-                    <option value="CATERING_FOOD">Catering Food / Recipe</option>
-                    <option value="RENTAL_EQUIPMENT">Rental Equipment Asset</option>
-                    <option value="SERVICE">Service / Staffing Package</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#111827] uppercase tracking-wider mb-2">
-                    Category
-                  </label>
-                  <select
-                    name="categoryId"
-                    value={formData.categoryId}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316]"
-                  >
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.name} ({cat.type})
-                      </option>
-                    ))}
-                    <option value="">+ New Category Below...</option>
-                  </select>
-                </div>
-
-                {!formData.categoryId ? (
-                  <div>
-                    <label className="block text-xs font-semibold text-[#111827] uppercase tracking-wider mb-2">
-                      New Category Name
-                    </label>
-                    <input
-                      type="text"
-                      name="newCategoryName"
-                      value={formData.newCategoryName}
-                      onChange={handleChange}
-                      placeholder="e.g. Seafood & Raw Bar"
-                      className="w-full px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316]"
-                    />
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-xs font-semibold text-[#111827] uppercase tracking-wider mb-2">
-                      Inventory Unit <span className="text-[#DC2626]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="unit"
-                      value={formData.unit}
-                      onChange={handleChange}
-                      required
-                      placeholder="e.g. plate, unit, portion, kg"
-                      className="w-full px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316]"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#111827] uppercase tracking-wider mb-2">
                     Selling / Rental Price ($) <span className="text-[#DC2626]">*</span>
                   </label>
                   <input
@@ -266,83 +139,6 @@ export default function AddProductPage() {
                     className="w-full px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316]"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#111827] uppercase tracking-wider mb-2">
-                    Cost Price ($)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    name="costPrice"
-                    value={formData.costPrice}
-                    onChange={handleChange}
-                    placeholder="0.00"
-                    className="w-full px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#111827] uppercase tracking-wider mb-2">
-                    Initial Stock Count
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    name="stockQuantity"
-                    value={formData.stockQuantity}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#111827] uppercase tracking-wider mb-2">
-                    Low-Stock Alert Threshold
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    name="minStockAlert"
-                    value={formData.minStockAlert}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#111827] uppercase tracking-wider mb-2">
-                  Catalog Status
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="isActive"
-                    name="isActive"
-                    checked={formData.isActive}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-[#F97316] rounded border-[#CBD5E1] focus:ring-[#F97316]"
-                  />
-                  <label htmlFor="isActive" className="text-sm font-medium text-[#111827]">
-                    Active Item (Available for events and invoicing)
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#111827] uppercase tracking-wider mb-2">
-                  Description & Catering Specifications
-                </label>
-                <textarea
-                  rows={3}
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  placeholder="e.g. Ingredients, allergen warnings, or equipment handling requirements"
-                  className="w-full px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#111827] placeholder-[#94A3B8] focus:outline-none focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316]"
-                />
               </div>
             </CardContent>
 

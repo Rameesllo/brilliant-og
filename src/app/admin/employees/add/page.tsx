@@ -20,6 +20,7 @@ export default function AddEmployeePage() {
   const router = useRouter();
   const [types, setTypes] = useState<EmployeeTypeOption[]>([]);
   const [isLoadingTypes, setIsLoadingTypes] = useState(true);
+  const [typesError, setTypesError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -52,9 +53,13 @@ export default function AddEmployeePage() {
               wagePerEvent: first.defaultWagePerEvent.toFixed(2),
             }));
           }
+        } else {
+          const data = await res.json().catch(() => null);
+          setTypesError(data?.error || "Unable to load employee designations.");
         }
       } catch (err) {
         console.error("Failed to load employee types:", err);
+        setTypesError("Unable to load employee designations. Please refresh and try again.");
       } finally {
         setIsLoadingTypes(false);
       }
@@ -251,12 +256,22 @@ export default function AddEmployeePage() {
                   isRequired
                   value={formData.employeeTypeId}
                   onChange={(e) => handleTypeChange(e.target.value)}
-                  options={types.map((t) => ({
-                    value: t.id,
-                    label: `${t.name} — ₹${t.defaultWagePerEvent.toLocaleString("en-IN")}/event`,
-                  }))}
+                  options={[
+                    {
+                      value: "",
+                      label: isLoadingTypes ? "Loading designations..." : "Select a designation",
+                    },
+                    ...types.map((t) => ({
+                      value: t.id,
+                      label: `${t.name} — ₹${t.defaultWagePerEvent.toLocaleString("en-IN")}/event`,
+                    })),
+                  ]}
                   disabled={isLoadingTypes}
                 />
+                {typesError && <p className="mt-1 text-xs text-[#DC2626]">{typesError}</p>}
+                {!isLoadingTypes && !typesError && types.length === 0 && (
+                  <p className="mt-1 text-xs text-[#DC2626]">No active employee designations are available.</p>
+                )}
                 <Select
                   label="Initial Status"
                   isRequired
@@ -272,7 +287,7 @@ export default function AddEmployeePage() {
 
               <div className="max-w-xs">
                 <Input
-                  label="Wage Per Event (₹)"
+                  label="Rate Per Work (₹)"
                   isRequired
                   type="number"
                   step="0.01"
@@ -280,7 +295,7 @@ export default function AddEmployeePage() {
                   placeholder="e.g. 700.00"
                   value={formData.wagePerEvent}
                   onChange={(e) => setFormData({ ...formData, wagePerEvent: e.target.value })}
-                  hint="Fixed amount paid to this employee for each event/program worked."
+                  helperText="Fixed amount paid to this employee for each event or work assignment."
                 />
               </div>
 

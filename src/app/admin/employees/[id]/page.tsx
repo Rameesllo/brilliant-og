@@ -38,8 +38,7 @@ interface EmployeeDetail {
   phone: string;
   department: string;
   designation: string;
-  hourlyRate: number;
-  dailyRate: number;
+  wagePerEvent: number;
   status: "ACTIVE" | "INACTIVE" | "ON_LEAVE" | "TERMINATED";
   emergencyContact: string;
   address: string;
@@ -334,7 +333,7 @@ export default function EmployeeDetailPage() {
                 <div className="flex items-center gap-2 text-[#475569]">
                   <DollarSign className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
                   <span>
-                    Event Wage: <strong className="text-[#111827]">{formatCurrency(employee.dailyRate || employee.hourlyRate)}</strong> (per event)
+                    Rate Per Work: <strong className="text-[#111827]">{formatCurrency(employee.wagePerEvent)}</strong>
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-[#475569]">

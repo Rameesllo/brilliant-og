@@ -145,6 +145,11 @@ export async function POST(request: NextRequest) {
   try {
     const session = await requireAdmin();
     const body = await request.json();
+    const auditUser = await prisma.user.findUnique({
+      where: { id: session.id },
+      select: { id: true },
+    });
+    const auditUserId = auditUser?.id ?? null;
 
     const {
       name,
@@ -262,7 +267,7 @@ export async function POST(request: NextRequest) {
     // Audit log
     await prisma.activityLog.create({
       data: {
-        userId: session.id,
+        userId: auditUserId,
         action: "PRODUCT_CREATED",
         entityType: "PRODUCT",
         entityId: product.id,

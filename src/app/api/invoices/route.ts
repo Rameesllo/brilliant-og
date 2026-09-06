@@ -178,6 +178,11 @@ export async function POST(request: NextRequest) {
   try {
     const session = await requireAdmin();
     const body = await request.json();
+    const auditUser = await prisma.user.findUnique({
+      where: { id: session.id },
+      select: { id: true },
+    });
+    const auditUserId = auditUser?.id ?? null;
 
     const {
       customerId,
@@ -345,7 +350,7 @@ export async function POST(request: NextRequest) {
       // Log Activity
       await tx.activityLog.create({
         data: {
-          userId: session.id,
+          userId: auditUserId,
           action: "INVOICE_CREATED",
           entityType: "INVOICE",
           entityId: inv.id,
@@ -362,7 +367,7 @@ export async function POST(request: NextRequest) {
       // Create Notification for Admins
       await tx.notification.create({
         data: {
-          userId: session.id,
+          userId: auditUserId,
           title: "New Invoice Issued",
           message: `Invoice ${inv.invoiceNumber} for ${customer.name} ($${calculatedGrandTotal.toFixed(2)}) has been created.`,
           type: "INFO",

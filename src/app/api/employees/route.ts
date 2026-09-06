@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
           name: emp.employeeType.name,
           description: emp.employeeType.description || "",
         },
-        wagePerEvent: Number(emp.wagePerEvent),
+        wagePerEvent: Number(emp.dailyRate),
         status: emp.status,
         programsCount: emp._count.programEmployees,
         totalEarned: totalCredit,
@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
     // Wage validation
     const numWagePerEvent = wagePerEvent !== undefined && wagePerEvent !== ""
       ? Number(wagePerEvent)
-      : Number(employeeType.defaultWagePerEvent);
+      : Number(employeeType.defaultDailyRate);
 
     if (isNaN(numWagePerEvent) || numWagePerEvent < 0) {
       return NextResponse.json({ error: "Wage per event cannot be negative" }, { status: 400 });
@@ -293,7 +293,7 @@ export async function POST(request: NextRequest) {
         address: address?.trim() || null,
         emergencyContact: emergencyContact?.trim() || null,
         employeeTypeId,
-        wagePerEvent: numWagePerEvent,
+        dailyRate: numWagePerEvent,
         status: (status as EmployeeStatus) || EmployeeStatus.ACTIVE,
         userId,
       },
@@ -337,7 +337,7 @@ export async function POST(request: NextRequest) {
             id: createdEmployee.employeeType.id,
             name: createdEmployee.employeeType.name,
           },
-          wagePerEvent: Number(createdEmployee.wagePerEvent),
+          wagePerEvent: Number(createdEmployee.dailyRate),
           status: createdEmployee.status,
           hasAccount: Boolean(userId),
         },

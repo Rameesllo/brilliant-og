@@ -322,12 +322,12 @@ CREATE TABLE "activity_logs" (
 -- CreateTable business_settings
 CREATE TABLE "business_settings" (
     "id" TEXT NOT NULL DEFAULT 'default',
-    "companyName" TEXT NOT NULL DEFAULT 'Royal Heritage Catering & Events',
+    "companyName" TEXT NOT NULL DEFAULT 'Brilliant Catering & Events',
     "tagline" TEXT DEFAULT 'Premium Catering & Event Management Solutions',
-    "email" TEXT NOT NULL DEFAULT 'operations@royalheritagecatering.com',
-    "phone" TEXT NOT NULL DEFAULT '+1 (555) 234-5678',
-    "address" TEXT NOT NULL DEFAULT '450 Banquet Boulevard, Suite 100',
-    "city" TEXT NOT NULL DEFAULT 'Metropolis',
+    "email" TEXT NOT NULL DEFAULT '',
+    "phone" TEXT NOT NULL DEFAULT '+91 7034510537',
+    "address" TEXT NOT NULL DEFAULT 'Parappanangadi, malappuram, Kerala, India',
+    "city" TEXT NOT NULL DEFAULT 'Parappanangadi',
     "taxId" TEXT DEFAULT 'TAX-99482710',
     "currencySymbol" TEXT NOT NULL DEFAULT '₹',
     "currencyCode" TEXT NOT NULL DEFAULT 'INR',

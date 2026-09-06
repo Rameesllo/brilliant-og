@@ -73,6 +73,11 @@ export async function POST(
     const session = await requireAdmin();
     const { id: customerId } = await params;
     const body = await request.json();
+    const auditUser = await prisma.user.findUnique({
+      where: { id: session.id },
+      select: { id: true },
+    });
+    const auditUserId = auditUser?.id ?? null;
 
     const customer = await prisma.customer.findUnique({ where: { id: customerId } });
     if (!customer) {
@@ -145,7 +150,7 @@ export async function POST(
       // Log activity
       await tx.activityLog.create({
         data: {
-          userId: session.id,
+          userId: auditUserId,
           action: "PAYMENT_RECORDED",
           entityType: "CUSTOMER_PAYMENT",
           entityId: payment.id,

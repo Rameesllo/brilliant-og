@@ -17,12 +17,12 @@ export async function GET() {
       update: {},
       create: {
         id: "default",
-        companyName: "Royal Heritage Catering & Events",
+        companyName: "Brilliant Catering & Events",
         tagline: "Premium Catering & Event Management Solutions",
-        email: "operations@royalheritagecatering.com",
-        phone: "+1 (555) 234-5678",
-        address: "450 Banquet Boulevard, Suite 100",
-        city: "Metropolis",
+        email: "",
+        phone: "+91 7034510537",
+        address: "Parappanangadi, malappuram, Kerala, India",
+        city: "Parappanangadi",
         taxId: "TAX-99482710",
         currencySymbol: "₹",
         currencyCode: "INR",
@@ -60,6 +60,11 @@ export async function PUT(request: NextRequest) {
   try {
     const session = await requireAdmin();
     const body = await request.json();
+    const auditUser = await prisma.user.findUnique({
+      where: { id: session.id },
+      select: { id: true },
+    });
+    const auditUserId = auditUser?.id ?? null;
 
     const {
       companyName,
@@ -85,9 +90,9 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
-    if (!email || !email.trim() || !email.includes("@")) {
+    if (email?.trim() && !email.includes("@")) {
       return NextResponse.json(
-        { error: "A valid business operations email is required." },
+        { error: "Business operations email must be valid when provided." },
         { status: 400 }
       );
     }
@@ -121,7 +126,7 @@ export async function PUT(request: NextRequest) {
         email: email.trim().toLowerCase(),
         phone: phone.trim(),
         address: address.trim(),
-        city: city ? city.trim() : "Metropolis",
+        city: city ? city.trim() : "Parappanangadi",
         taxId: taxId ? taxId.trim() : null,
         currencySymbol: currencySymbol ? currencySymbol.trim() : "₹",
         currencyCode: currencyCode ? currencyCode.trim().toUpperCase() : "INR",
@@ -138,7 +143,7 @@ export async function PUT(request: NextRequest) {
         email: email.trim().toLowerCase(),
         phone: phone.trim(),
         address: address.trim(),
-        city: city ? city.trim() : "Metropolis",
+        city: city ? city.trim() : "Parappanangadi",
         taxId: taxId ? taxId.trim() : null,
         currencySymbol: currencySymbol ? currencySymbol.trim() : "₹",
         currencyCode: currencyCode ? currencyCode.trim().toUpperCase() : "INR",
@@ -153,7 +158,7 @@ export async function PUT(request: NextRequest) {
     // Audit trail logging: non-sensitive metadata only
     await prisma.activityLog.create({
       data: {
-        userId: session.id,
+        userId: auditUserId,
         action: "BUSINESS_SETTINGS_UPDATED",
         entityType: "BusinessSettings",
         entityId: "default",

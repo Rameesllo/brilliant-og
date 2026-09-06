@@ -18,7 +18,6 @@ import {
   Wallet,
   UserCheck,
   X,
-  UtensilsCrossed,
   Bell,
   Shield,
 } from "lucide-react";
@@ -66,12 +65,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Brand logo & company title */}
       <div className="flex items-center justify-between h-16 px-5 border-b border-[#E5E7EB]">
         <Link href={role === "ADMIN" ? "/admin/dashboard" : "/employee/dashboard"} className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-[#F97316] text-white flex items-center justify-center shadow-xs">
-            <UtensilsCrossed className="w-5 h-5" />
+          <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 shadow-xs">
+            <img
+              src="/brilliant-event-logo.svg"
+              alt="Brilliant Event"
+              className="w-full h-full object-cover"
+            />
           </div>
           <div>
             <span className="text-sm font-bold text-[#111827] tracking-tight block leading-tight">
-              Catering ERP
+              Brilliant Event
             </span>
             <span className="text-[10px] font-medium text-[#64748B] uppercase tracking-wider block">
               {role === "ADMIN" ? "Admin Console" : "Staff Portal"}

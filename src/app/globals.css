@@ -97,6 +97,21 @@ body {
     display: block !important;
   }
 
+  .invoice-print-layout {
+    display: block !important;
+  }
+
+  .invoice-print-area {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .invoice-document {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
   /* Remove shadows and borders that waste ink */
   .shadow-2xs,
   .shadow-xs,

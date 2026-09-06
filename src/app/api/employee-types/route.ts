@@ -11,14 +11,26 @@ export async function GET() {
   try {
     await requireAuth();
 
+    const allowedDesignations = [
+      "Service Boy",
+      "Base Boy",
+      "Supervisor",
+      "Captain",
+      "Hosting Boy",
+      "Hosting Girl",
+    ];
+
     const types = await prisma.employeeType.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        name: { in: allowedDesignations },
+      },
       orderBy: { name: "asc" },
       select: {
         id: true,
         name: true,
         description: true,
-        defaultWagePerEvent: true,
+        defaultDailyRate: true,
       },
     });
 
@@ -27,7 +39,7 @@ export async function GET() {
         id: t.id,
         name: t.name,
         description: t.description,
-        defaultWagePerEvent: Number(t.defaultWagePerEvent),
+        defaultWagePerEvent: Number(t.defaultDailyRate),
       })),
     });
   } catch (error) {

@@ -582,12 +582,12 @@ model ActivityLog {
 
 model BusinessSettings {
   id                 String   @id @default("default")
-  companyName        String   @default("Royal Heritage Catering & Events")
+  companyName        String   @default("Brilliant Catering & Events")
   tagline            String?  @default("Premium Catering & Event Management Solutions")
-  email              String   @default("operations@royalheritagecatering.com")
-  phone              String   @default("+1 (555) 234-5678")
-  address            String   @default("450 Banquet Boulevard, Suite 100")
-  city               String   @default("Metropolis")
+  email              String   @default("")
+  phone              String   @default("+91 7034510537")
+  address            String   @default("Parappanangadi, malappuram, Kerala, India")
+  city               String   @default("Parappanangadi")
   taxId              String?  @default("TAX-99482710")
   currencySymbol     String   @default("₹")
   currencyCode       String   @default("INR")

@@ -13,16 +13,11 @@ import { formatCurrency } from "@/lib/utils";
 import {
   Plus,
   Package,
-  AlertTriangle,
-  Boxes,
-  DollarSign,
   Loader2,
   AlertCircle,
   ArrowUpRight,
-  Sliders,
 } from "lucide-react";
 import { AddProductModal } from "@/components/modals/AddProductModal";
-import { AdjustStockModal } from "@/components/modals/AdjustStockModal";
 
 interface ProductRecord {
   id: string;
@@ -42,24 +37,11 @@ interface ProductRecord {
   invoicesCount: number;
 }
 
-interface ProductMetrics {
-  totalProducts: number;
-  totalStockUnits: number;
-  lowStockCount: number;
-  inventoryValuation: number;
-}
-
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<ProductRecord[]>([]);
-  const [metrics, setMetrics] = useState<ProductMetrics>({
-    totalProducts: 0,
-    totalStockUnits: 0,
-    lowStockCount: 0,
-    inventoryValuation: 0,
-  });
+  const [totalProducts, setTotalProducts] = useState(0);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
-  const [lowStockFilter, setLowStockFilter] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -69,14 +51,12 @@ export default function AdminProductsPage() {
 
   // Modals
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [adjustTargetProduct, setAdjustTargetProduct] = useState<ProductRecord | null>(null);
 
-  const fetchProducts = useCallback((page: number, q: string, type: string, lowStock: boolean) => {
+  const fetchProducts = useCallback((page: number, q: string, type: string) => {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: "15",
       type,
-      lowStock: lowStock ? "true" : "false",
     });
     if (q) params.set("search", q);
 
@@ -87,7 +67,7 @@ export default function AdminProductsPage() {
       })
       .then((data) => {
         setProducts(data.products || []);
-        if (data.metrics) setMetrics(data.metrics);
+        setTotalProducts(data.metrics?.totalProducts || data.pagination?.total || 0);
         if (data.pagination) {
           setTotalPages(data.pagination.totalPages || 1);
           setTotalCount(data.pagination.total || 0);
@@ -101,8 +81,8 @@ export default function AdminProductsPage() {
   }, []);
 
   useEffect(() => {
-    fetchProducts(currentPage, search, typeFilter, lowStockFilter);
-  }, [fetchProducts, currentPage, search, typeFilter, lowStockFilter]);
+    fetchProducts(currentPage, search, typeFilter);
+  }, [fetchProducts, currentPage, search, typeFilter]);
 
   const handleSearchChange = (val: string) => {
     setSearch(val);
@@ -111,11 +91,6 @@ export default function AdminProductsPage() {
 
   const handleTypeChange = (val: string) => {
     setTypeFilter(val);
-    setCurrentPage(1);
-  };
-
-  const toggleLowStock = () => {
-    setLowStockFilter((prev) => !prev);
     setCurrentPage(1);
   };
 
@@ -137,7 +112,7 @@ export default function AdminProductsPage() {
     >
       <div className="space-y-6">
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <Card>
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
@@ -145,62 +120,12 @@ export default function AdminProductsPage() {
                 <Package className="w-4 h-4 text-[#F97316]" />
               </div>
               <div className="text-2xl font-bold text-[#111827] mt-2">
-                {metrics.totalProducts}
+                {totalProducts}
               </div>
               <p className="text-xs text-[#64748B] mt-1">Food recipes, rentals, & services</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-[#64748B]">Total Stock Units</span>
-                <Boxes className="w-4 h-4 text-[#6366F1]" />
-              </div>
-              <div className="text-2xl font-bold text-[#111827] mt-2">
-                {metrics.totalStockUnits.toLocaleString()}
-              </div>
-              <p className="text-xs text-[#64748B] mt-1">Available across warehouse</p>
-            </CardContent>
-          </Card>
-
-          <Card
-            className={`cursor-pointer transition-all ${
-              lowStockFilter ? "ring-2 ring-[#DC2626]" : ""
-            }`}
-            onClick={toggleLowStock}
-          >
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-[#64748B]">Low-Stock Alerts</span>
-                <AlertTriangle className="w-4 h-4 text-[#DC2626]" />
-              </div>
-              <div className="text-2xl font-bold text-[#DC2626] mt-2 flex items-center gap-2">
-                <span>{metrics.lowStockCount}</span>
-                {metrics.lowStockCount > 0 && (
-                  <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-[#FEF2F2] text-[#DC2626] border border-[#FCA5A5]">
-                    Requires Action
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-[#64748B] mt-1">
-                {lowStockFilter ? "Showing low stock only" : "Click to filter low stock items"}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-[#64748B]">Inventory Valuation</span>
-                <DollarSign className="w-4 h-4 text-[#16A34A]" />
-              </div>
-              <div className="text-2xl font-bold text-[#15803D] mt-2">
-                {formatCurrency(metrics.inventoryValuation)}
-              </div>
-              <p className="text-xs text-[#16A34A] mt-1">Calculated replacement value</p>
-            </CardContent>
-          </Card>
         </div>
 
         {error && (
@@ -240,15 +165,6 @@ export default function AdminProductsPage() {
               ))}
             </div>
 
-            {lowStockFilter && (
-              <button
-                type="button"
-                onClick={toggleLowStock}
-                className="px-2.5 py-1 rounded-lg bg-[#FEF2F2] text-[#DC2626] border border-[#FCA5A5] text-xs font-semibold hover:bg-[#FEE2E2] transition-colors"
-              >
-                Clear Low Stock Filter ✕
-              </button>
-            )}
           </div>
 
           <Button
@@ -288,7 +204,7 @@ export default function AdminProductsPage() {
                 <Package className="w-12 h-12 text-[#CBD5E1] mx-auto mb-3" />
                 <p className="text-base font-semibold text-[#111827]">No products found</p>
                 <p className="text-sm mt-1">
-                  {search || typeFilter !== "ALL" || lowStockFilter
+                  {search || typeFilter !== "ALL"
                     ? "No catalog items match your search or active filters."
                     : "Get started by adding your first catering dish or rental equipment."}
                 </p>
@@ -310,9 +226,6 @@ export default function AdminProductsPage() {
                     <TableHead>Type</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead className="text-right">Price</TableHead>
-                    <TableHead className="text-center">Current Stock</TableHead>
-                    <TableHead className="text-center">Min Threshold</TableHead>
-                    <TableHead className="text-center">Stock Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -353,32 +266,8 @@ export default function AdminProductsPage() {
                           /{item.unit}
                         </span>
                       </TableCell>
-                      <TableCell
-                        className={`text-center font-bold ${
-                          item.isLowStock ? "text-[#DC2626]" : "text-[#111827]"
-                        }`}
-                      >
-                        {item.stockQuantity} {item.unit}
-                      </TableCell>
-                      <TableCell className="text-center text-xs text-[#64748B]">
-                        {item.minStockAlert} {item.unit}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant={item.isLowStock ? "danger" : "active"} size="sm">
-                          {item.isLowStock ? "Low Stock" : "In Stock"}
-                        </Badge>
-                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs text-[#F97316] hover:bg-[#FFF7ED]"
-                            leftIcon={<Sliders className="w-3 h-3" />}
-                            onClick={() => setAdjustTargetProduct(item)}
-                          >
-                            Adjust
-                          </Button>
                           <Link href={`/admin/products/${item.id}/edit`}>
                             <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-[#64748B]">
                               Edit
@@ -405,14 +294,7 @@ export default function AdminProductsPage() {
       <AddProductModal
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
-        onSuccess={() => fetchProducts(currentPage, search, typeFilter, lowStockFilter)}
-      />
-
-      <AdjustStockModal
-        isOpen={Boolean(adjustTargetProduct)}
-        onClose={() => setAdjustTargetProduct(null)}
-        product={adjustTargetProduct}
-        onSuccess={() => fetchProducts(currentPage, search, typeFilter, lowStockFilter)}
+        onSuccess={() => fetchProducts(currentPage, search, typeFilter)}
       />
     </AdminLayout>
   );

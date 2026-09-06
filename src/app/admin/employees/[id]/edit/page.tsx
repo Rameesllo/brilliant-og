@@ -14,8 +14,7 @@ import { ArrowLeft, Save, AlertCircle } from "lucide-react";
 interface EmployeeTypeOption {
   id: string;
   name: string;
-  defaultHourlyRate: number;
-  defaultDailyRate: number;
+  defaultWagePerEvent: number;
 }
 
 export default function EditEmployeePage() {
@@ -35,8 +34,7 @@ export default function EditEmployeePage() {
     address: "",
     emergencyContact: "",
     employeeTypeId: "",
-    hourlyRate: "",
-    dailyRate: "",
+    ratePerWork: "",
     status: "ACTIVE",
     code: "",
   });
@@ -68,8 +66,7 @@ export default function EditEmployeePage() {
             address: emp.address || "",
             emergencyContact: emp.emergencyContact || "",
             employeeTypeId: emp.employeeTypeId || "",
-            hourlyRate: emp.hourlyRate !== undefined ? Number(emp.hourlyRate).toFixed(2) : "",
-            dailyRate: emp.dailyRate !== undefined ? Number(emp.dailyRate).toFixed(2) : "",
+            ratePerWork: emp.wagePerEvent !== undefined ? Number(emp.wagePerEvent).toFixed(2) : "",
             status: emp.status || "ACTIVE",
             code: emp.code || "",
           });
@@ -109,8 +106,8 @@ export default function EditEmployeePage() {
         return;
       }
     }
-    if (Number(formData.hourlyRate) < 0 || Number(formData.dailyRate) < 0) {
-      setErrorMessage("Wage rates cannot be negative.");
+    if (Number(formData.ratePerWork) < 0) {
+      setErrorMessage("Rate per work cannot be negative.");
       return;
     }
 
@@ -127,8 +124,7 @@ export default function EditEmployeePage() {
           address: formData.address.trim() || undefined,
           emergencyContact: formData.emergencyContact.trim() || undefined,
           employeeTypeId: formData.employeeTypeId,
-          hourlyRate: Number(formData.hourlyRate) || 0,
-          dailyRate: Number(formData.dailyRate) || 0,
+          wagePerEvent: Number(formData.ratePerWork) || 0,
           status: formData.status,
         }),
       });
@@ -276,24 +272,17 @@ export default function EditEmployeePage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="max-w-xs">
                   <Input
-                    label="Hourly Rate ($)"
+                    label="Rate Per Work (₹)"
                     isRequired
                     type="number"
                     step="0.01"
-                    placeholder="25.00"
-                    value={formData.hourlyRate}
-                    onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
-                  />
-                  <Input
-                    label="Daily Rate ($)"
-                    isRequired
-                    type="number"
-                    step="0.01"
-                    placeholder="200.00"
-                    value={formData.dailyRate}
-                    onChange={(e) => setFormData({ ...formData, dailyRate: e.target.value })}
+                    min="0"
+                    placeholder="700.00"
+                    value={formData.ratePerWork}
+                    onChange={(e) => setFormData({ ...formData, ratePerWork: e.target.value })}
+                    helperText="Fixed amount paid for each work assignment."
                   />
                 </div>
               </CardContent>
