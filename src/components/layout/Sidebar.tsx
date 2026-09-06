@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -66,9 +67,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="flex items-center justify-between h-16 px-5 border-b border-[#E5E7EB]">
         <Link href={role === "ADMIN" ? "/admin/dashboard" : "/employee/dashboard"} className="flex items-center gap-2.5">
           <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 shadow-xs">
-            <img
+            <Image
               src="/brilliant-event-logo.svg"
               alt="Brilliant Event"
+              width={48}
+              height={48}
               className="w-full h-full object-cover"
             />
           </div>
