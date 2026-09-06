@@ -32,6 +32,32 @@ export async function createNotification(payload: NotificationPayload) {
   });
 }
 
+  /**
+   * Notify all active employees when a new program is available.
+   */
+  export async function notifyEmployeesProgramCreated(opts: {
+    programTitle: string;
+    programId: string;
+    eventDate: string;
+  }) {
+    const employees = await prisma.user.findMany({
+      where: { role: "EMPLOYEE", isActive: true },
+      select: { id: true },
+    });
+
+    if (employees.length === 0) return;
+
+    await prisma.notification.createMany({
+      data: employees.map((employee) => ({
+        userId: employee.id,
+        title: "New Program Available",
+        message: `A new program, "${opts.programTitle}", is scheduled for ${opts.eventDate}.`,
+        type: "INFO" as const,
+        link: "/employee/programs",
+      })),
+    });
+  }
+
 /**
  * Notify when a new program is created.
  */
@@ -81,7 +107,7 @@ export async function notifyParticipationConfirmed(opts: {
     title: "Program Participation Confirmed",
     message: `Your participation in "${opts.programTitle}" has been confirmed.`,
     type: "SUCCESS",
-    link: `/employee/programs/${opts.programId}`,
+    link: "/employee/my-programs",
   });
 }
 

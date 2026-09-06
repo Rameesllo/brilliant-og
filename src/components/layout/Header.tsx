@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
@@ -55,18 +55,61 @@ export const Header: React.FC<HeaderProps> = ({
   const [notifications, setNotifications] = useState<HeaderNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const hasLoadedNotificationsRef = useRef(false);
+  const notificationIdsRef = useRef<Set<string>>(new Set());
 
-  useEffect(() => {
+  const unlockNotificationSound = () => {
+    if (typeof window === "undefined" || !window.AudioContext) return;
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContext();
+    }
+    void audioContextRef.current.resume();
+  };
+
+  const playNotificationSound = useCallback(() => {
+    const audioContext = audioContextRef.current;
+    if (!audioContext || audioContext.state !== "running") return;
+
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(1175, audioContext.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.12, audioContext.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.35);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.35);
+  }, []);
+
+  const loadNotifications = useCallback(() => {
     fetch("/api/notifications?limit=5")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data) {
-          setNotifications(data.notifications || []);
-          setUnreadCount(data.unreadCount || 0);
-        }
+        if (!data) return;
+        const nextNotifications = data.notifications || [];
+        const hasNewNotification = hasLoadedNotificationsRef.current && nextNotifications.some(
+          (notification: HeaderNotification) => !notificationIdsRef.current.has(notification.id)
+        );
+        notificationIdsRef.current = new Set(
+          nextNotifications.map((notification: HeaderNotification) => notification.id)
+        );
+        setNotifications(nextNotifications);
+        setUnreadCount(data.unreadCount || 0);
+        if (hasNewNotification) playNotificationSound();
+        hasLoadedNotificationsRef.current = true;
       })
       .catch(() => {});
-  }, []);
+  }, [playNotificationSound]);
+
+  useEffect(() => {
+    loadNotifications();
+    const intervalId = window.setInterval(loadNotifications, 15000);
+    return () => window.clearInterval(intervalId);
+  }, [loadNotifications]);
 
   const handleNotificationClick = async (notification: HeaderNotification) => {
     if (!notification.isRead) {
@@ -141,6 +184,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="relative">
           <button
             type="button"
+            onPointerDown={unlockNotificationSound}
             onClick={() => {
               setNotificationsOpen(!notificationsOpen);
               setProfileOpen(false);
