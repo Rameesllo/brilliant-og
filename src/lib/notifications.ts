@@ -8,6 +8,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { sendPushToUsers } from "@/lib/push";
 
 export type NotificationPayload = {
   userId?: string | null; // null = broadcast to all admins
@@ -41,7 +42,11 @@ export async function createNotification(payload: NotificationPayload) {
     eventDate: string;
   }) {
     const employees = await prisma.user.findMany({
-      where: { role: "EMPLOYEE", isActive: true },
+      where: {
+        role: "EMPLOYEE",
+        isActive: true,
+        employeeProfile: { status: "ACTIVE" },
+      },
       select: { id: true },
     });
 
@@ -56,6 +61,17 @@ export async function createNotification(payload: NotificationPayload) {
         link: "/employee/programs",
       })),
     });
+
+    await sendPushToUsers(
+      employees.map((employee) => employee.id),
+      {
+        title: "New Program Available",
+        body: `${opts.programTitle} has been added. Check the program details.`,
+        url: `/employee/programs/${opts.programId}`,
+        tag: `program-${opts.programId}`,
+        data: { programId: opts.programId },
+      }
+    );
   }
 
 /**

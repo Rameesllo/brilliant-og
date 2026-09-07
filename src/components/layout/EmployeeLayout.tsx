@@ -7,6 +7,7 @@ import { Calendar, Clock, LayoutDashboard, List, Wallet } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { useSession } from "@/components/providers/SessionProvider";
+import { PushNotificationSetup } from "@/components/providers/PushNotificationSetup";
 
 export interface EmployeeLayoutProps {
   children: React.ReactNode;
@@ -54,6 +55,9 @@ export const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({
           {children}
         </main>
         <p className="pb-5 text-center text-xs text-[#94A3B8]">
+          <span className="mb-2 block">
+            <PushNotificationSetup />
+          </span>
           Web built by{" "}
           <a
             href="https://portfolio-og-sandy.vercel.app/"

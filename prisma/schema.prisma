@@ -120,6 +120,7 @@ model User {
   employeeProfile   Employee?
   managedPrograms   Program[]       @relation("ProgramManager")
   notifications     Notification[]
+  pushSubscriptions  PushSubscription[]
   activityLogs      ActivityLog[]
 
   @@index([email])
@@ -553,7 +554,30 @@ model Notification {
 }
 
 // --------------------------------------------------------
-// 16. ACTIVITY LOG (Audit Trail)
+// 16. WEB PUSH SUBSCRIPTION
+// --------------------------------------------------------
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lastUsedAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([lastUsedAt])
+  @@map("push_subscriptions")
+}
+
+// --------------------------------------------------------
+// 17. ACTIVITY LOG (Audit Trail)
 // --------------------------------------------------------
 
 model ActivityLog {

@@ -1,0 +1,128 @@
+"use client";
+
+import React, { useCallback, useEffect, useState } from "react";
+import { Bell, BellOff, Loader2 } from "lucide-react";
+
+function toUint8Array(value: string) {
+  const padding = "=".repeat((4 - (value.length % 4)) % 4);
+  const base64 = `${value}${padding}`.replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map((character) => character.charCodeAt(0)));
+}
+
+export function PushNotificationSetup() {
+  const [status, setStatus] = useState<"loading" | "enabled" | "available" | "denied" | "unsupported">("loading");
+  const [isEnabling, setIsEnabling] = useState(false);
+
+  const registerSubscription = useCallback(async () => {
+    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!publicKey || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setStatus("unsupported");
+      return;
+    }
+
+    if (Notification.permission === "denied") {
+      setStatus("denied");
+      return;
+    }
+
+    await navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
+    const readyRegistration = await navigator.serviceWorker.ready;
+    let subscription = await readyRegistration.pushManager.getSubscription();
+
+    if (!subscription) {
+      subscription = await readyRegistration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: toUint8Array(publicKey),
+      });
+    }
+
+    const response = await fetch("/api/push/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subscription: subscription.toJSON() }),
+    });
+
+    if (!response.ok) throw new Error("Subscription registration failed");
+    setStatus("enabled");
+  }, []);
+
+  useEffect(() => {
+    if (!("Notification" in window)) {
+      setStatus("unsupported");
+      return;
+    }
+
+    if (Notification.permission === "granted") {
+      registerSubscription().catch(() => setStatus("available"));
+      return;
+    }
+
+    if (Notification.permission === "denied") {
+      setStatus("denied");
+      return;
+    }
+
+    setStatus("available");
+
+    const promptKey = "brilliant-push-permission-prompted";
+    if (!sessionStorage.getItem(promptKey)) {
+      sessionStorage.setItem(promptKey, "true");
+      void Notification.requestPermission().then((permission) => {
+        if (permission === "granted") {
+          registerSubscription().catch(() => setStatus("available"));
+        } else if (permission === "denied") {
+          setStatus("denied");
+        }
+      }).catch(() => setStatus("available"));
+    }
+  }, [registerSubscription]);
+
+  const enableNotifications = async () => {
+    setIsEnabling(true);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setStatus(permission === "denied" ? "denied" : "available");
+        return;
+      }
+      await registerSubscription();
+    } catch {
+      setStatus("available");
+    } finally {
+      setIsEnabling(false);
+    }
+  };
+
+  if (status === "unsupported") return null;
+
+  if (status === "denied") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[11px] text-[#94A3B8]">
+        <BellOff className="h-3.5 w-3.5" />
+        Notifications blocked in browser settings
+      </span>
+    );
+  }
+
+  if (status === "enabled") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[11px] text-[#16A34A]">
+        <Bell className="h-3.5 w-3.5" />
+        Notifications enabled
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={enableNotifications}
+      disabled={isEnabling}
+      className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#C2410C] hover:text-[#9A3412] disabled:opacity-60"
+    >
+      {isEnabling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Bell className="h-3.5 w-3.5" />}
+      Enable notifications
+    </button>
+  );
+}

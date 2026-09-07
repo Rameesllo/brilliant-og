@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@prisma/client": "6.4.1",
+    "@types/web-push": "^3.6.4",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "jose": "^6.2.10",
@@ -18,7 +19,8 @@
     "prisma": "6.4.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
