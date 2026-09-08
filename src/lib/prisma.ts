@@ -10,26 +10,16 @@ const connectionLimit = Number.isFinite(configuredConnectionLimit) && configured
   ? configuredConnectionLimit
   : 5;
 
-const databaseUrlForRuntime = databaseUrl?.replace(
-  /(pooler\.supabase\.com):5432\b/i,
-  "$1:6543"
-);
-const usesSupabaseTransactionPooler = /pooler\.supabase\.com:6543\b/i.test(
-  databaseUrlForRuntime ?? ""
-);
-
-const databaseUrlWithConnectionLimit = databaseUrlForRuntime
+const databaseUrlWithConnectionLimit = databaseUrl
   ? (() => {
-      const withConnectionLimit = /([?&])connection_limit=\d+/i.test(databaseUrlForRuntime)
-        ? databaseUrlForRuntime.replace(
+      const withConnectionLimit = /([?&])connection_limit=\d+/i.test(databaseUrl)
+        ? databaseUrl.replace(
             /([?&])connection_limit=\d+/i,
             `$1connection_limit=${connectionLimit}`
           )
-        : `${databaseUrlForRuntime}${databaseUrlForRuntime.includes("?") ? "&" : "?"}connection_limit=${connectionLimit}`;
+        : `${databaseUrl}${databaseUrl.includes("?") ? "&" : "?"}connection_limit=${connectionLimit}`;
 
-      return !usesSupabaseTransactionPooler || /([?&])pgbouncer=/i.test(withConnectionLimit)
-        ? withConnectionLimit
-        : `${withConnectionLimit}&pgbouncer=true`;
+      return withConnectionLimit;
     })()
   : undefined;
 
