@@ -45,7 +45,15 @@ export function PushNotificationSetup() {
       body: JSON.stringify({ subscription: subscription.toJSON() }),
     });
 
-    if (!response.ok) throw new Error("Subscription registration failed");
+    if (!response.ok && response.status !== 409) {
+      throw new Error("Subscription registration failed");
+    }
+
+    const statusResponse = await fetch("/api/push/subscribe");
+    if (statusResponse.ok) {
+      const statusData = await statusResponse.json() as { subscriptionCount?: number };
+      setSubscriptionCount(statusData.subscriptionCount ?? 0);
+    }
     setStatus("enabled");
   }, []);
 

@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, AuthError } from "@/lib/auth";
 import { isPushConfigured } from "@/lib/push";
+
+function endpointId(endpoint: string) {
+  return createHash("sha256").update(endpoint).digest("hex").slice(0, 12);
+}
 
 export async function GET() {
   try {
@@ -49,33 +54,41 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid push subscription" }, { status: 400 });
     }
 
+    const identifier = endpointId(subscription.endpoint);
+    const isDevelopment = process.env.NODE_ENV === "development";
+    if (isDevelopment) console.info(`[push] subscribe user=${session.id} endpoint=${identifier}`);
+
     const existing = await prisma.pushSubscription.findUnique({
       where: { endpoint: subscription.endpoint },
       select: { id: true, userId: true },
     });
-
-    if (existing && existing.userId !== session.id) {
-      return NextResponse.json({ error: "Push subscription is already registered" }, { status: 409 });
+    if (isDevelopment) {
+      console.info(
+        `[push] existing=${existing ? "yes" : "no"} owner=${existing?.userId ?? "none"} endpoint=${identifier}`
+      );
     }
 
-    await prisma.pushSubscription.upsert({
-      where: { endpoint: subscription.endpoint },
-      create: {
-        userId: session.id,
-        endpoint: subscription.endpoint,
-        p256dh: subscription.keys.p256dh,
-        auth: subscription.keys.auth,
-        userAgent: request.headers.get("user-agent")?.slice(0, 512),
-      },
-      update: {
+    const data = {
+      userId: session.id,
+      endpoint: subscription.endpoint,
         p256dh: subscription.keys.p256dh,
         auth: subscription.keys.auth,
         userAgent: request.headers.get("user-agent")?.slice(0, 512),
         lastUsedAt: new Date(),
-      },
-    });
+    };
 
-    return NextResponse.json({ ok: true });
+    await prisma.pushSubscription.upsert({
+      where: { endpoint: subscription.endpoint },
+      create: data,
+      update: data,
+    });
+    const result = existing
+      ? existing.userId === session.id ? "reused" : "reassigned"
+      : "created";
+
+    if (isDevelopment) console.info(`[push] subscribe result=${result} user=${session.id} endpoint=${identifier} status=200`);
+
+    return NextResponse.json({ ok: true, result });
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
