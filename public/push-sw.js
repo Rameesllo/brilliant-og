@@ -17,8 +17,8 @@ self.addEventListener("push", (event) => {
   const title = payload.title || "Brilliant Event";
   const options = {
     body: payload.body || "You have a new update.",
-    icon: "/brilliant-event-logo.svg",
-    badge: "/brilliant-event-logo.svg",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
     tag: payload.tag || "brilliant-event-update",
     renotify: false,
     requireInteraction: false,
