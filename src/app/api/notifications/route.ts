@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, getSession, AuthError } from "@/lib/auth";
+import { requireAuth, getSession, AuthError } from "@/lib/auth";
 
 /**
  * GET /api/notifications
@@ -132,12 +132,15 @@ export async function PATCH(request: NextRequest) {
  */
 export async function DELETE() {
   try {
-    const session = await requireAdmin();
+    const session = await requireAuth();
+    const isAdmin = session.role === "ADMIN" || session.role === "MANAGER";
 
     const result = await prisma.notification.deleteMany({
       where: {
         isRead: true,
-        OR: [{ userId: session.id }, { userId: null }],
+        ...(isAdmin
+          ? { OR: [{ userId: session.id }, { userId: null }] }
+          : { userId: session.id }),
       },
     });
 

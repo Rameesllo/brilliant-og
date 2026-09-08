@@ -127,6 +127,11 @@ export const Header: React.FC<HeaderProps> = ({
     if (notification.link) router.push(notification.link);
   };
 
+  const clearReadNotifications = async () => {
+    await fetch("/api/notifications", { method: "DELETE" }).catch(() => {});
+    setNotifications((current) => current.filter((notification) => !notification.isRead));
+  };
+
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
@@ -205,9 +210,20 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl border border-[#E5E7EB] shadow-lg py-2 z-50 animate-in fade-in zoom-in-95">
               <div className="px-4 py-2 border-b border-[#F1F5F9] flex items-center justify-between">
                 <span className="text-xs font-semibold text-[#111827]">Notifications</span>
-                <span className="text-[11px] font-medium text-[#F97316]">
-                  {unreadCount ? `${unreadCount} new` : "All read"}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-medium text-[#F97316]">
+                    {unreadCount ? `${unreadCount} new` : "All read"}
+                  </span>
+                  {notifications.some((notification) => notification.isRead) && (
+                    <button
+                      type="button"
+                      onClick={clearReadNotifications}
+                      className="text-[10px] font-medium text-[#64748B] hover:text-[#DC2626]"
+                    >
+                      Clear read
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="divide-y divide-[#F1F5F9] text-xs">
                 {notifications.length === 0 ? (

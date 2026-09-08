@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession, requireAdmin, AuthError } from "@/lib/auth";
 import { ProgramType, ProgramStatus, Prisma } from "@prisma/client";
+import { notifyEmployeesProgramCreated, notifySafely } from "@/lib/notifications";
 
 /**
  * GET /api/programs
@@ -318,6 +319,17 @@ export async function POST(request: NextRequest) {
     } catch (logErr) {
       console.error("Failed to log PROGRAM_CREATED activity:", logErr);
     }
+
+    await notifySafely(() => notifyEmployeesProgramCreated({
+      programTitle: program.title,
+      programId: program.id,
+      eventDate: program.eventDate.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }),
+      venueName: program.venueName,
+    }));
 
     return NextResponse.json({ ok: true, program }, { status: 201 });
   } catch (error: any) {
