@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, AuthError } from "@/lib/auth";
+import { Prisma } from "@prisma/client";
 
 /**
  * GET /api/customers
@@ -183,34 +184,40 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Auto-generate customer code: CUST-1001, CUST-1002...
-    const lastCustomer = await prisma.customer.findFirst({
-      orderBy: { createdAt: "desc" },
-      select: { code: true },
-    });
+    let customer;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const customers = await prisma.customer.findMany({ select: { code: true } });
+      const highestCode = customers.reduce((highest, item) => {
+        const match = item.code.match(/^CUST-(\d+)$/i);
+        return match ? Math.max(highest, Number(match[1])) : highest;
+      }, 1000);
+      const customerCode = `CUST-${String(highestCode + 1 + attempt).padStart(4, "0")}`;
 
-    let nextCodeNumber = 1001;
-    if (lastCustomer?.code) {
-      const match = lastCustomer.code.match(/CUST-(\d+)/i);
-      if (match) {
-        nextCodeNumber = parseInt(match[1], 10) + 1;
+      try {
+        customer = await prisma.customer.create({
+          data: {
+            code: customerCode,
+            name: name.trim(),
+            phone: phone.trim(),
+            companyName: companyName && typeof companyName === "string" ? companyName.trim() : null,
+            email: cleanEmail,
+            address: address && typeof address === "string" ? address.trim() : null,
+            city: city && typeof city === "string" ? city.trim() : null,
+            notes: notes && typeof notes === "string" ? notes.trim() : null,
+            isActive: Boolean(isActive),
+          },
+        });
+        break;
+      } catch (error) {
+        if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
+          throw error;
+        }
       }
     }
-    const customerCode = `CUST-${nextCodeNumber}`;
 
-    const customer = await prisma.customer.create({
-      data: {
-        code: customerCode,
-        name: name.trim(),
-        phone: phone.trim(),
-        companyName: companyName && typeof companyName === "string" ? companyName.trim() : null,
-        email: cleanEmail,
-        address: address && typeof address === "string" ? address.trim() : null,
-        city: city && typeof city === "string" ? city.trim() : null,
-        notes: notes && typeof notes === "string" ? notes.trim() : null,
-        isActive: Boolean(isActive),
-      },
-    });
+    if (!customer) {
+      return NextResponse.json({ error: "Unable to generate a unique customer code" }, { status: 409 });
+    }
 
     // Audit log
     await prisma.activityLog.create({

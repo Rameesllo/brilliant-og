@@ -205,15 +205,32 @@ export async function POST(request: NextRequest) {
         : await prisma.customer.findFirst({ where: { name: customerName } });
 
       if (!existingCustomer) {
-        const count = await prisma.customer.count();
-        const code = `CUST-${String(count + 1001).padStart(4, "0")}`;
-        existingCustomer = await prisma.customer.create({
-          data: {
-            code,
-            name: customerName,
-            phone: customerPhone || "N/A",
-          },
-        });
+        for (let attempt = 0; attempt < 5 && !existingCustomer; attempt++) {
+          const customers = await prisma.customer.findMany({ select: { code: true } });
+          const highestCode = customers.reduce((highest, customer) => {
+            const match = customer.code.match(/^CUST-(\d+)$/i);
+            return match ? Math.max(highest, Number(match[1])) : highest;
+          }, 1000);
+          const code = `CUST-${String(highestCode + 1 + attempt).padStart(4, "0")}`;
+
+          try {
+            existingCustomer = await prisma.customer.create({
+              data: {
+                code,
+                name: customerName,
+                phone: customerPhone || "N/A",
+              },
+            });
+          } catch (error) {
+            if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
+              throw error;
+            }
+          }
+        }
+
+        if (!existingCustomer) {
+          return NextResponse.json({ error: "Unable to generate a unique customer code" }, { status: 409 });
+        }
       }
       resolvedCustomerId = existingCustomer.id;
     } else {
