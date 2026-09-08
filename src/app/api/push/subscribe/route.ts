@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireEmployee, AuthError } from "@/lib/auth";
+import { requireAuth, AuthError } from "@/lib/auth";
 
 function isValidSubscription(value: unknown): value is {
   endpoint: string;
@@ -19,7 +19,7 @@ function isValidSubscription(value: unknown): value is {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireEmployee();
+    const session = await requireAuth();
     const body = await request.json();
     const subscription = body?.subscription;
 
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await requireEmployee();
+    const session = await requireAuth();
     const body = await request.json();
     const endpoint = body?.endpoint;
 

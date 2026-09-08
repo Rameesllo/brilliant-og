@@ -6,7 +6,7 @@ type PushMessage = {
   body: string;
   url: string;
   tag: string;
-  data: { programId: string };
+  data: Record<string, string>;
 };
 
 function configureWebPush() {
@@ -23,34 +23,38 @@ function configureWebPush() {
 export async function sendPushToUsers(userIds: string[], message: PushMessage) {
   if (userIds.length === 0 || !configureWebPush()) return;
 
-  const subscriptions = await prisma.pushSubscription.findMany({
-    where: { userId: { in: userIds } },
-  });
+  try {
+    const subscriptions = await prisma.pushSubscription.findMany({
+      where: { userId: { in: userIds } },
+    });
 
-  await Promise.allSettled(
-    subscriptions.map(async (storedSubscription) => {
-      const subscription: PushSubscription = {
-        endpoint: storedSubscription.endpoint,
-        keys: {
-          p256dh: storedSubscription.p256dh,
-          auth: storedSubscription.auth,
-        },
-      };
+    await Promise.allSettled(
+      subscriptions.map(async (storedSubscription) => {
+        const subscription: PushSubscription = {
+          endpoint: storedSubscription.endpoint,
+          keys: {
+            p256dh: storedSubscription.p256dh,
+            auth: storedSubscription.auth,
+          },
+        };
 
-      try {
-        await webpush.sendNotification(subscription, JSON.stringify(message));
-        await prisma.pushSubscription.update({
-          where: { id: storedSubscription.id },
-          data: { lastUsedAt: new Date() },
-        });
-      } catch (error: unknown) {
-        const statusCode = (error as { statusCode?: number })?.statusCode;
-        if (statusCode === 404 || statusCode === 410) {
-          await prisma.pushSubscription.delete({ where: { id: storedSubscription.id } });
-          return;
+        try {
+          await webpush.sendNotification(subscription, JSON.stringify(message));
+          await prisma.pushSubscription.update({
+            where: { id: storedSubscription.id },
+            data: { lastUsedAt: new Date() },
+          });
+        } catch (error: unknown) {
+          const statusCode = (error as { statusCode?: number })?.statusCode;
+          if (statusCode === 404 || statusCode === 410) {
+            await prisma.pushSubscription.delete({ where: { id: storedSubscription.id } });
+            return;
+          }
+          console.error("Failed to send web push notification:", error);
         }
-        console.error("Failed to send web push notification:", error);
-      }
-    })
-  );
+      })
+    );
+  } catch (error) {
+    console.error("Failed to load web push subscriptions:", error);
+  }
 }

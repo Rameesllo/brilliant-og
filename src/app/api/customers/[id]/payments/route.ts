@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, AuthError } from "@/lib/auth";
 import { PaymentMethod } from "@prisma/client";
+import { createNotification } from "@/lib/notifications";
 
 /**
  * GET /api/customers/[id]/payments
@@ -165,6 +166,14 @@ export async function POST(
       });
 
       return payment;
+    });
+
+    await createNotification({
+      userId: session.id,
+      title: "Payment Received",
+      message: `Payment of $${numAmount.toFixed(2)} received from ${customer.name}.`,
+      type: "SUCCESS",
+      link: invoiceId ? `/admin/invoices/${invoiceId}` : `/admin/customers/${customerId}`,
     });
 
     return NextResponse.json(

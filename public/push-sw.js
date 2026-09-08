@@ -17,7 +17,11 @@ self.addEventListener("push", (event) => {
     badge: "/brilliant-event-logo.svg",
     tag: payload.tag || "brilliant-event-update",
     renotify: false,
-    data: payload.data || { url: payload.url || "/employee/dashboard" },
+    requireInteraction: false,
+    data: {
+      ...(payload.data || {}),
+      url: payload.data?.url || payload.url || "/employee/dashboard",
+    },
   };
 
   event.waitUntil(self.registration.showNotification(title, options));

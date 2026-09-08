@@ -65,17 +65,6 @@ export function PushNotificationSetup() {
 
     setStatus("available");
 
-    const promptKey = "brilliant-push-permission-prompted";
-    if (!sessionStorage.getItem(promptKey)) {
-      sessionStorage.setItem(promptKey, "true");
-      void Notification.requestPermission().then((permission) => {
-        if (permission === "granted") {
-          registerSubscription().catch(() => setStatus("available"));
-        } else if (permission === "denied") {
-          setStatus("denied");
-        }
-      }).catch(() => setStatus("available"));
-    }
   }, [registerSubscription]);
 
   const enableNotifications = async () => {

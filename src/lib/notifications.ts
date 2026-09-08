@@ -22,7 +22,7 @@ export type NotificationPayload = {
  * Core: create a single notification.
  */
 export async function createNotification(payload: NotificationPayload) {
-  return prisma.notification.create({
+  const notification = await prisma.notification.create({
     data: {
       userId: payload.userId ?? null,
       title: payload.title,
@@ -31,6 +31,26 @@ export async function createNotification(payload: NotificationPayload) {
       link: payload.link ?? null,
     },
   });
+
+  const recipientIds = payload.userId
+    ? [payload.userId]
+    : (await prisma.user.findMany({
+        where: { role: { in: ["ADMIN", "MANAGER"] }, isActive: true },
+        select: { id: true },
+      })).map((user) => user.id);
+
+  await sendPushToUsers(recipientIds, {
+    title: payload.title,
+    body: payload.message,
+    url: payload.link || "/admin/notifications",
+    tag: `notification-${notification.id}`,
+    data: {
+      notificationId: notification.id,
+      url: payload.link || "/admin/notifications",
+    },
+  });
+
+  return notification;
 }
 
   /**
@@ -125,6 +145,43 @@ export async function notifyParticipationConfirmed(opts: {
     type: "SUCCESS",
     link: "/employee/my-programs",
   });
+}
+
+/** Notify an employee when an admin assigns them to a program. */
+export async function notifyProgramEmployeeAssigned(opts: {
+  employeeUserId: string;
+  programTitle: string;
+  programId: string;
+  eventDate: string;
+  startTime: string;
+  status: "REQUESTED" | "CONFIRMED";
+}) {
+  const isConfirmed = opts.status === "CONFIRMED";
+  return createNotification({
+    userId: opts.employeeUserId,
+    title: isConfirmed ? "New Program Assigned" : "Program Assignment Requested",
+    message: isConfirmed
+      ? `You have been assigned to ${opts.programTitle}. ${opts.eventDate} at ${opts.startTime}.`
+      : `You have been added to ${opts.programTitle} and are awaiting confirmation.`,
+    type: isConfirmed ? "SUCCESS" : "INFO",
+    link: `/employee/programs/${opts.programId}`,
+  });
+}
+
+/** Notify assigned employees when a program lifecycle status changes. */
+export async function notifyAssignedEmployeesProgramStatus(opts: {
+  employeeUserIds: string[];
+  programTitle: string;
+  programId: string;
+  status: string;
+}) {
+  await Promise.all(opts.employeeUserIds.map((employeeUserId) => createNotification({
+    userId: employeeUserId,
+    title: `Program ${opts.status.replaceAll("_", " ").toLowerCase()}`,
+    message: `${opts.programTitle} is now ${opts.status.replaceAll("_", " ").toLowerCase()}.`,
+    type: opts.status === "CANCELLED" ? "ALERT" : "INFO",
+    link: `/employee/programs/${opts.programId}`,
+  })));
 }
 
 /**

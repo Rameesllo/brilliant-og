@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { SessionProvider } from "@/components/providers/SessionProvider";
+import { PushNotificationSetup } from "@/components/providers/PushNotificationSetup";
 
 /**
  * Admin section layout — server-side authentication guard.
@@ -24,7 +25,12 @@ export default async function AdminSectionLayout({
 
   return (
     <SessionProvider user={session}>
-      {children}
+      <div className="min-h-screen">
+        {children}
+        <div className="pointer-events-none fixed bottom-3 right-3 z-50 [&>*]:pointer-events-auto">
+          <PushNotificationSetup />
+        </div>
+      </div>
     </SessionProvider>
   );
 }

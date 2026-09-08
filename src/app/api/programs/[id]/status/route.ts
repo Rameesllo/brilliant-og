@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, AuthError } from "@/lib/auth";
 import { ProgramStatus } from "@prisma/client";
+import { notifyAssignedEmployeesProgramStatus } from "@/lib/notifications";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -51,6 +52,23 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         },
       });
     }
+
+    const assignedEmployees = await prisma.programEmployee.findMany({
+      where: {
+        programId,
+        status: { in: ["CONFIRMED", "COMPLETED"] },
+      },
+      select: { employee: { select: { userId: true } } },
+    });
+
+    await notifyAssignedEmployeesProgramStatus({
+      employeeUserIds: assignedEmployees
+        .map(({ employee }) => employee.userId)
+        .filter((userId): userId is string => Boolean(userId)),
+      programTitle: updated.title,
+      programId: updated.id,
+      status,
+    });
 
     // Log Activity
     try {

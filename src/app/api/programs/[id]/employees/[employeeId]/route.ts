@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, AuthError } from "@/lib/auth";
 import { ProgramEmployeeStatus } from "@prisma/client";
+import {
+  notifyAssignedEmployeesProgramStatus,
+  notifyProgramEmployeeAssigned,
+} from "@/lib/notifications";
 
 interface RouteParams {
   params: Promise<{ id: string; employeeId: string }>;
@@ -83,6 +87,26 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       });
     } catch (logErr) {
       console.error("Failed to log activity:", logErr);
+    }
+
+    if (existing.employee.userId && newStatus !== existing.status) {
+      if (newStatus === "CONFIRMED" || newStatus === "REQUESTED") {
+        await notifyProgramEmployeeAssigned({
+          employeeUserId: existing.employee.userId,
+          programTitle: existing.program.title,
+          programId: existing.program.id,
+          eventDate: existing.program.eventDate.toLocaleDateString("en-IN"),
+          startTime: existing.program.startTime,
+          status: newStatus,
+        });
+      } else {
+        await notifyAssignedEmployeesProgramStatus({
+          employeeUserIds: [existing.employee.userId],
+          programTitle: existing.program.title,
+          programId: existing.program.id,
+          status: newStatus,
+        });
+      }
     }
 
     return NextResponse.json({

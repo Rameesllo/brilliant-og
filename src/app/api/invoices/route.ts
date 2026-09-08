@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, AuthError } from "@/lib/auth";
 import { InvoicePaymentStatus } from "@prisma/client";
+import { sendPushToUsers } from "@/lib/push";
 
 /**
  * GET /api/invoices
@@ -376,6 +377,14 @@ export async function POST(request: NextRequest) {
       });
 
       return inv;
+    });
+
+    await sendPushToUsers(auditUserId ? [auditUserId] : [], {
+      title: "New Invoice Issued",
+      body: `Invoice ${createdInvoice.invoiceNumber} for ${customer.name} has been created.`,
+      url: `/admin/invoices/${createdInvoice.id}`,
+      tag: `invoice-${createdInvoice.id}`,
+      data: { invoiceId: createdInvoice.id, url: `/admin/invoices/${createdInvoice.id}` },
     });
 
     return NextResponse.json(

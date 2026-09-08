@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { notifyEmployeeJoined } from "@/lib/notifications";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -120,6 +121,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     } catch (logErr) {
       console.error("Failed to log activity:", logErr);
     }
+
+    await notifyEmployeeJoined({
+      adminUserId: session.id,
+      employeeName: employee.name,
+      programTitle: program.title,
+      programId: program.id,
+    });
 
     return NextResponse.json(
       {

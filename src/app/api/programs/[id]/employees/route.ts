@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, AuthError } from "@/lib/auth";
 import { ProgramEmployeeStatus } from "@prisma/client";
+import { notifyProgramEmployeeAssigned } from "@/lib/notifications";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -169,6 +170,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       });
     } catch (logErr) {
       console.error("Failed to log assignment activity:", logErr);
+    }
+
+    if (employee.userId) {
+      await notifyProgramEmployeeAssigned({
+        employeeUserId: employee.userId,
+        programTitle: program.title,
+        programId: program.id,
+        eventDate: program.eventDate.toLocaleDateString("en-IN"),
+        startTime: program.startTime,
+        status: assignedStatus === "CONFIRMED" ? "CONFIRMED" : "REQUESTED",
+      });
     }
 
     return NextResponse.json(
