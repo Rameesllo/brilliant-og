@@ -29,6 +29,7 @@ export function PushNotificationSetup() {
     }
 
     await navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
+    await navigator.serviceWorker.ready.then((registration) => registration.update());
     const readyRegistration = await navigator.serviceWorker.ready;
     let subscription = await readyRegistration.pushManager.getSubscription();
 
