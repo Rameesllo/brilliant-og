@@ -22,6 +22,7 @@ import {
   Bell,
   Shield,
 } from "lucide-react";
+import { PushNotificationSetup } from "@/components/providers/PushNotificationSetup";
 
 export interface SidebarProps {
   role?: "ADMIN" | "EMPLOYEE";
@@ -135,6 +136,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Bottom system status badge */}
+      {role === "EMPLOYEE" && (
+        <div className="mx-3 mb-3 rounded-lg border border-[#FFEDD5] bg-[#FFF7ED] px-3 py-2.5">
+          <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold text-[#9A3412]">
+            <Bell className="h-3.5 w-3.5 text-[#F97316]" />
+            Mobile notifications
+          </div>
+          <PushNotificationSetup />
+        </div>
+      )}
       <div className="p-3.5 m-3 rounded-lg bg-[#F8FAFC] border border-[#E5E7EB] text-xs">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[11px] font-semibold text-[#111827]">System Online</span>
