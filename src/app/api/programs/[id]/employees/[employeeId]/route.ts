@@ -5,6 +5,7 @@ import { ProgramEmployeeStatus } from "@prisma/client";
 import {
   notifyAssignedEmployeesProgramStatus,
   notifyProgramEmployeeAssigned,
+  notifySafely,
 } from "@/lib/notifications";
 
 interface RouteParams {
@@ -89,23 +90,24 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       console.error("Failed to log activity:", logErr);
     }
 
-    if (existing.employee.userId && newStatus !== existing.status) {
+    const employeeUserId = existing.employee.userId;
+    if (employeeUserId && newStatus !== existing.status) {
       if (newStatus === "CONFIRMED" || newStatus === "REQUESTED") {
-        await notifyProgramEmployeeAssigned({
-          employeeUserId: existing.employee.userId,
+        await notifySafely(() => notifyProgramEmployeeAssigned({
+          employeeUserId,
           programTitle: existing.program.title,
           programId: existing.program.id,
           eventDate: existing.program.eventDate.toLocaleDateString("en-IN"),
           startTime: existing.program.startTime,
           status: newStatus,
-        });
+        }));
       } else {
-        await notifyAssignedEmployeesProgramStatus({
-          employeeUserIds: [existing.employee.userId],
+        await notifySafely(() => notifyAssignedEmployeesProgramStatus({
+          employeeUserIds: [employeeUserId],
           programTitle: existing.program.title,
           programId: existing.program.id,
           status: newStatus,
-        });
+        }));
       }
     }
 

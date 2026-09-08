@@ -9,12 +9,20 @@ type PushMessage = {
   data: Record<string, string>;
 };
 
-function configureWebPush() {
+export function isPushConfigured() {
   const subject = process.env.VAPID_SUBJECT;
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
 
-  if (!subject || !publicKey || !privateKey) return false;
+  return Boolean(subject && publicKey && privateKey);
+}
+
+function configureWebPush() {
+  if (!isPushConfigured()) return false;
+
+  const subject = process.env.VAPID_SUBJECT as string;
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY as string;
+  const privateKey = process.env.VAPID_PRIVATE_KEY as string;
 
   webpush.setVapidDetails(subject, publicKey, privateKey);
   return true;

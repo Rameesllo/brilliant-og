@@ -1,6 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, AuthError } from "@/lib/auth";
+import { isPushConfigured } from "@/lib/push";
+
+export async function GET() {
+  try {
+    const session = await requireAuth();
+    const subscriptionCount = await prisma.pushSubscription.count({
+      where: { userId: session.id },
+    });
+
+    return NextResponse.json({
+      configured: isPushConfigured(),
+      subscriptionCount,
+      subscribed: subscriptionCount > 0,
+    });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    console.error("Error checking push subscription:", error);
+    return NextResponse.json({ error: "Unable to check push subscription" }, { status: 500 });
+  }
+}
 
 function isValidSubscription(value: unknown): value is {
   endpoint: string;

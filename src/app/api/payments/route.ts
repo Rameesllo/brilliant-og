@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, AuthError } from "@/lib/auth";
 import { LedgerEntryType, PaymentMethod, PaymentStatus, Prisma } from "@prisma/client";
-import { notifyEmployeePaymentPaid } from "@/lib/notifications";
+import { notifyEmployeePaymentPaid, notifySafely } from "@/lib/notifications";
 
 /**
  * GET /api/payments
@@ -259,12 +259,13 @@ export async function POST(request: NextRequest) {
       console.error("Failed to log activity:", logErr);
     }
 
-    if (payment.status === "PAID" && employee.userId) {
-      await notifyEmployeePaymentPaid({
-        employeeUserId: employee.userId,
+    const employeeUserId = employee.userId;
+    if (payment.status === "PAID" && employeeUserId) {
+      await notifySafely(() => notifyEmployeePaymentPaid({
+        employeeUserId,
         amount: numAmount,
         paymentId: payment.id,
-      });
+      }));
     }
 
     return NextResponse.json(

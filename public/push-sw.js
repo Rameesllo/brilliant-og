@@ -10,6 +10,10 @@ self.addEventListener("push", (event) => {
     payload = { title: "Brilliant Event", body: event.data.text() };
   }
 
+  if (!payload || typeof payload !== "object") {
+    payload = { title: "Brilliant Event", body: "You have a new update." };
+  }
+
   const title = payload.title || "Brilliant Event";
   const options = {
     body: payload.body || "You have a new update.",
@@ -18,6 +22,7 @@ self.addEventListener("push", (event) => {
     tag: payload.tag || "brilliant-event-update",
     renotify: false,
     requireInteraction: false,
+    vibrate: [200, 100, 200],
     data: {
       ...(payload.data || {}),
       url: payload.data?.url || payload.url || "/employee/dashboard",

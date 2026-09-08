@@ -1,4 +1,3 @@
-import { notifyEmployeesProgramCreated } from "@/lib/notifications";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession, requireAdmin, AuthError } from "@/lib/auth";
@@ -301,16 +300,6 @@ export async function POST(request: NextRequest) {
       });
     } catch (logErr) {
       console.error("Failed to log PROGRAM_CREATED activity:", logErr);
-    }
-
-    try {
-      await notifyEmployeesProgramCreated({
-        programTitle: program.title,
-        programId: program.id,
-        eventDate: program.eventDate.toLocaleDateString("en-IN"),
-      });
-    } catch (notificationError) {
-      console.error("Failed to notify employees about new program:", notificationError);
     }
 
     return NextResponse.json({ ok: true, program }, { status: 201 });

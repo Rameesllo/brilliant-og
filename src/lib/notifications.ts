@@ -32,67 +32,67 @@ export async function createNotification(payload: NotificationPayload) {
     },
   });
 
-  const recipientIds = payload.userId
-    ? [payload.userId]
-    : (await prisma.user.findMany({
-        where: { role: { in: ["ADMIN", "MANAGER"] }, isActive: true },
-        select: { id: true },
-      })).map((user) => user.id);
+  try {
+    const recipientIds = payload.userId
+      ? [payload.userId]
+      : (await prisma.user.findMany({
+          where: { role: { in: ["ADMIN", "MANAGER"] }, isActive: true },
+          select: { id: true },
+        })).map((user) => user.id);
 
-  await sendPushToUsers(recipientIds, {
-    title: payload.title,
-    body: payload.message,
-    url: payload.link || "/admin/notifications",
-    tag: `notification-${notification.id}`,
-    data: {
-      notificationId: notification.id,
+    await sendPushToUsers(recipientIds, {
+      title: payload.title,
+      body: payload.message,
       url: payload.link || "/admin/notifications",
-    },
-  });
+      tag: `notification-${notification.id}`,
+      data: {
+        notificationId: notification.id,
+        url: payload.link || "/admin/notifications",
+      },
+    });
+  } catch (error) {
+    console.error("Notification push follow-up failed:", error);
+  }
 
   return notification;
 }
 
-  /**
-   * Notify all active employees when a new program is available.
-   */
-  export async function notifyEmployeesProgramCreated(opts: {
+export async function notifySafely(task: () => Promise<unknown>) {
+  try {
+    await task();
+  } catch (error) {
+    console.error("Business notification failed after successful operation:", error);
+  }
+}
+
+/** Notify explicitly selected employees when a new program is assigned. */
+export async function notifyEmployeesProgramCreated(opts: {
+  employeeUserIds: string[];
     programTitle: string;
     programId: string;
     eventDate: string;
   }) {
-    const employees = await prisma.user.findMany({
-      where: {
-        role: "EMPLOYEE",
-        isActive: true,
-        employeeProfile: { status: "ACTIVE" },
-      },
-      select: { id: true },
-    });
+  const employeeUserIds = [...new Set(opts.employeeUserIds)];
+  if (employeeUserIds.length === 0) return;
 
-    if (employees.length === 0) return;
+  await prisma.notification.createMany({
+    data: employeeUserIds.map((userId) => ({
+      userId,
+      title: "New Program Assigned",
+      message: `${opts.programTitle} is scheduled for ${opts.eventDate}.`,
+      type: "INFO" as const,
+      link: `/employee/programs/${opts.programId}`,
+    })),
+  });
 
-    await prisma.notification.createMany({
-      data: employees.map((employee) => ({
-        userId: employee.id,
-        title: "New Program Available",
-        message: `A new program, "${opts.programTitle}", is scheduled for ${opts.eventDate}.`,
-        type: "INFO" as const,
-        link: "/employee/programs",
-      })),
-    });
-
-    await sendPushToUsers(
-      employees.map((employee) => employee.id),
-      {
-        title: "New Program Available",
-        body: `${opts.programTitle} has been added. Check the program details.`,
-        url: `/employee/programs/${opts.programId}`,
-        tag: `program-${opts.programId}`,
-        data: { programId: opts.programId },
-      }
-    );
-  }
+  await sendPushToUsers(employeeUserIds, {
+    title: "New Program Assigned",
+    body: `${opts.programTitle} is scheduled for ${opts.eventDate}.`,
+    url: `/employee/programs/${opts.programId}`,
+    tag: `program-${opts.programId}`,
+    data: { programId: opts.programId, url: `/employee/programs/${opts.programId}` },
+  });
+}
 
 /**
  * Notify when a new program is created.

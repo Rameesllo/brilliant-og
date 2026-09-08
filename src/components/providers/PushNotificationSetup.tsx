@@ -11,8 +11,10 @@ function toUint8Array(value: string) {
 }
 
 export function PushNotificationSetup() {
-  const [status, setStatus] = useState<"loading" | "enabled" | "available" | "denied" | "unsupported">("loading");
+  const [status, setStatus] = useState<"loading" | "enabled" | "available" | "denied" | "unsupported" | "insecure">("loading");
   const [isEnabling, setIsEnabling] = useState(false);
+  const [isConfigured, setIsConfigured] = useState(true);
+  const [subscriptionCount, setSubscriptionCount] = useState(0);
 
   const registerSubscription = useCallback(async () => {
     const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -48,6 +50,11 @@ export function PushNotificationSetup() {
   }, []);
 
   useEffect(() => {
+    if (!window.isSecureContext) {
+      setStatus("insecure");
+      return;
+    }
+
     if (!("Notification" in window)) {
       setStatus("unsupported");
       return;
@@ -65,6 +72,17 @@ export function PushNotificationSetup() {
 
     setStatus("available");
 
+    void fetch("/api/push/subscribe")
+      .then((response) => response.ok ? response.json() : null)
+      .then((data: { configured?: boolean; subscriptionCount?: number } | null) => {
+        if (!data) return;
+        setIsConfigured(data.configured !== false);
+        setSubscriptionCount(data.subscriptionCount ?? 0);
+        if (data.subscriptionCount && Notification.permission === "granted") {
+          setStatus("enabled");
+        }
+      })
+      .catch(() => undefined);
   }, [registerSubscription]);
 
   const enableNotifications = async () => {
@@ -85,6 +103,27 @@ export function PushNotificationSetup() {
 
   if (status === "unsupported") return null;
 
+  if (status === "insecure") {
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 text-[11px] text-[#B45309]"
+        title="Web Push requires HTTPS on phones. Deploy the ERP with an HTTPS URL."
+      >
+        <BellOff className="h-3.5 w-3.5" />
+        Notifications require HTTPS on this device
+      </span>
+    );
+  }
+
+  if (!isConfigured) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[11px] text-[#94A3B8]" title="Configure VAPID keys on the server to enable push notifications">
+        <BellOff className="h-3.5 w-3.5" />
+        Push notifications are not configured
+      </span>
+    );
+  }
+
   if (status === "denied") {
     return (
       <span className="inline-flex items-center gap-1.5 text-[11px] text-[#94A3B8]">
@@ -98,7 +137,7 @@ export function PushNotificationSetup() {
     return (
       <span className="inline-flex items-center gap-1.5 text-[11px] text-[#16A34A]">
         <Bell className="h-3.5 w-3.5" />
-        Notifications enabled
+        Notifications enabled{subscriptionCount > 1 ? ` on ${subscriptionCount} devices` : ""}
       </span>
     );
   }
