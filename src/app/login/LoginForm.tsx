@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Shield, User, ArrowRight, Lock, Mail, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
 export function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "";
 
@@ -28,6 +27,7 @@ export function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({ email, password, rememberMe }),
       });
 
@@ -41,11 +41,10 @@ export function LoginForm() {
 
       // Redirect to callback URL if it matches role permissions, otherwise to role dashboard
       if (callbackUrl && !callbackUrl.includes("/login")) {
-        router.push(callbackUrl);
+        window.location.replace(callbackUrl);
       } else {
-        router.push(data.redirectUrl);
+        window.location.replace(data.redirectUrl);
       }
-      router.refresh();
     } catch {
       setErrorMessage("Network error connecting to authentication service. Please try again.");
       setIsLoading(false);
