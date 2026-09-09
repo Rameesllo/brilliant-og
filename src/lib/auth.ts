@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { Role } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 export const SESSION_COOKIE_NAME = "catering_erp_session";
 
@@ -106,7 +107,29 @@ export async function getSession(): Promise<SessionUser | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   if (!token) return null;
-  return verifyToken(token);
+  const session = await verifyToken(token);
+  if (!session) return null;
+
+  // Keep recreated employee records aligned with an existing login session.
+  const user = await prisma.user.findUnique({
+    where: { id: session.id },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      employeeProfile: { select: { id: true } },
+    },
+  });
+  if (!user) return null;
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    employeeId: user.employeeProfile?.id,
+  };
 }
 
 /**

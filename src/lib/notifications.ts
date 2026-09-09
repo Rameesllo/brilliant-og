@@ -71,6 +71,8 @@ export async function notifyEmployeesProgramCreated(opts: {
   programId: string;
   eventDate: string;
   venueName: string;
+  expectedGuests: number;
+  requiredStaffCount: number;
 }) {
   const employees = await prisma.user.findMany({
     where: {
@@ -83,7 +85,7 @@ export async function notifyEmployeesProgramCreated(opts: {
   const employeeUserIds = employees.map((employee) => employee.id);
   if (employeeUserIds.length === 0) return;
 
-  const message = `${opts.programTitle} on ${opts.eventDate} at ${opts.venueName} has been created by Admin. Please check and confirm your availability.`;
+  const message = `${opts.programTitle} on ${opts.eventDate} at ${opts.venueName} has been created by Admin. Expected guests: ${opts.expectedGuests}. Required staff: ${opts.requiredStaffCount}. Please check and confirm your availability.`;
 
   await prisma.notification.createMany({
     data: employeeUserIds.map((userId) => ({
@@ -164,15 +166,18 @@ export async function notifyProgramEmployeeAssigned(opts: {
   programId: string;
   eventDate: string;
   startTime: string;
+  venueName: string;
+  expectedGuests: number;
+  requiredStaffCount: number;
   status: "REQUESTED" | "CONFIRMED";
 }) {
   const isConfirmed = opts.status === "CONFIRMED";
   return createNotification({
     userId: opts.employeeUserId,
-    title: isConfirmed ? "New Program Assigned" : "Program Assignment Requested",
+    title: isConfirmed ? "You Are Confirmed" : "Program Assignment Requested",
     message: isConfirmed
-      ? `You have been assigned to ${opts.programTitle}. ${opts.eventDate} at ${opts.startTime}.`
-      : `You have been added to ${opts.programTitle} and are awaiting confirmation.`,
+      ? `You are confirmed for ${opts.programTitle}. Date: ${opts.eventDate} at ${opts.startTime}. Venue: ${opts.venueName}. Expected guests: ${opts.expectedGuests}. Required staff: ${opts.requiredStaffCount}.`
+      : `You have been added to ${opts.programTitle}. Expected guests: ${opts.expectedGuests}. Required staff: ${opts.requiredStaffCount}. You are awaiting confirmation.`,
     type: isConfirmed ? "SUCCESS" : "INFO",
     link: `/employee/programs/${opts.programId}`,
   });
@@ -183,12 +188,14 @@ export async function notifyAssignedEmployeesProgramStatus(opts: {
   employeeUserIds: string[];
   programTitle: string;
   programId: string;
+  expectedGuests: number;
+  requiredStaffCount: number;
   status: string;
 }) {
   await Promise.all(opts.employeeUserIds.map((employeeUserId) => createNotification({
     userId: employeeUserId,
     title: `Program ${opts.status.replaceAll("_", " ").toLowerCase()}`,
-    message: `${opts.programTitle} is now ${opts.status.replaceAll("_", " ").toLowerCase()}.`,
+    message: `${opts.programTitle} is now ${opts.status.replaceAll("_", " ").toLowerCase()}. Expected guests: ${opts.expectedGuests}. Required staff: ${opts.requiredStaffCount}.`,
     type: opts.status === "CANCELLED" ? "ALERT" : "INFO",
     link: `/employee/programs/${opts.programId}`,
   })));

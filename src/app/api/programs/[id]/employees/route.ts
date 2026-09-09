@@ -180,6 +180,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         programId: program.id,
         eventDate: program.eventDate.toLocaleDateString("en-IN"),
         startTime: program.startTime,
+        venueName: program.venueName,
+        expectedGuests: program.expectedGuests,
+        requiredStaffCount: program.requiredStaffCount,
         status: assignedStatus === "CONFIRMED" ? "CONFIRMED" : "REQUESTED",
       }));
     }

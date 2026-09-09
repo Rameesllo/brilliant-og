@@ -142,7 +142,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <Bell className="h-3.5 w-3.5 text-[#F97316]" />
             Mobile notifications
           </div>
-          <PushNotificationSetup />
+          <PushNotificationSetup showStatus={false} />
         </div>
       )}
       <div className="p-3.5 m-3 rounded-lg bg-[#F8FAFC] border border-[#E5E7EB] text-xs">

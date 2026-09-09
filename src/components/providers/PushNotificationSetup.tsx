@@ -10,7 +10,7 @@ function toUint8Array(value: string) {
   return Uint8Array.from([...rawData].map((character) => character.charCodeAt(0)));
 }
 
-export function PushNotificationSetup() {
+export function PushNotificationSetup({ showStatus = true }: { showStatus?: boolean }) {
   const [status, setStatus] = useState<"loading" | "enabled" | "available" | "denied" | "unsupported" | "insecure">("loading");
   const [isEnabling, setIsEnabling] = useState(false);
   const [isConfigured, setIsConfigured] = useState(true);
@@ -143,6 +143,7 @@ export function PushNotificationSetup() {
   }
 
   if (status === "enabled") {
+    if (!showStatus) return null;
     return (
       <span className="inline-flex items-center gap-1.5 text-[11px] text-[#16A34A]">
         <Bell className="h-3.5 w-3.5" />

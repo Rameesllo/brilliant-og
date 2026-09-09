@@ -329,6 +329,8 @@ export async function POST(request: NextRequest) {
         year: "numeric",
       }),
       venueName: program.venueName,
+      expectedGuests: program.expectedGuests,
+      requiredStaffCount: program.requiredStaffCount,
     }));
 
     return NextResponse.json({ ok: true, program }, { status: 201 });

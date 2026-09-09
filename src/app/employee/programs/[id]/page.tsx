@@ -35,6 +35,8 @@ export default function EmployeeProgramDetailsPage() {
   const params = useParams<{ id: string }>();
   const [program, setProgram] = useState<ProgramDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [requestMessage, setRequestMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!params.id) return;
@@ -47,6 +49,26 @@ export default function EmployeeProgramDetailsPage() {
       .then((data) => setProgram(data.program))
       .catch((requestError) => setError(requestError instanceof Error ? requestError.message : "Unable to load program"));
   }, [params.id]);
+
+  const handleRequestShift = async () => {
+    if (!program || program.myParticipation || isRequesting) return;
+    setIsRequesting(true);
+    setRequestMessage(null);
+    try {
+      const response = await fetch(`/api/programs/${program.id}/join`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Unable to request this shift");
+      setProgram({
+        ...program,
+        myParticipation: { status: "REQUESTED", assignedRole: null },
+      });
+      setRequestMessage("Shift requested. Waiting for admin confirmation.");
+    } catch (requestError) {
+      setRequestMessage(requestError instanceof Error ? requestError.message : "Unable to request this shift");
+    } finally {
+      setIsRequesting(false);
+    }
+  };
 
   return (
     <EmployeeLayout
@@ -103,6 +125,23 @@ export default function EmployeeProgramDetailsPage() {
                   <p className="text-xs text-[#64748B]">Your participation</p>
                   <p className="font-medium text-[#C2410C]">{program.myParticipation.status.replace("_", " ")}{program.myParticipation.assignedRole ? ` · ${program.myParticipation.assignedRole}` : ""}</p>
                 </div>
+              )}
+
+              {requestMessage && (
+                <p className="rounded-lg border border-[#FED7AA] bg-[#FFF7ED] p-3 text-sm text-[#9A3412]">
+                  {requestMessage}
+                </p>
+              )}
+
+              {!program.myParticipation && (
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  isLoading={isRequesting}
+                  onClick={handleRequestShift}
+                >
+                  Request Shift
+                </Button>
               )}
 
               {program.notes && <p className="rounded-lg border border-[#E5E7EB] p-3 text-sm text-[#475569]">{program.notes}</p>}

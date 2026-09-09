@@ -99,6 +99,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           programId: existing.program.id,
           eventDate: existing.program.eventDate.toLocaleDateString("en-IN"),
           startTime: existing.program.startTime,
+          venueName: existing.program.venueName,
+          expectedGuests: existing.program.expectedGuests,
+          requiredStaffCount: existing.program.requiredStaffCount,
           status: newStatus,
         }));
       } else {
@@ -106,6 +109,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           employeeUserIds: [employeeUserId],
           programTitle: existing.program.title,
           programId: existing.program.id,
+          expectedGuests: existing.program.expectedGuests,
+          requiredStaffCount: existing.program.requiredStaffCount,
           status: newStatus,
         }));
       }

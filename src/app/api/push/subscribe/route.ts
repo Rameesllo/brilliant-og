@@ -47,6 +47,16 @@ function isValidSubscription(value: unknown): value is {
 export async function POST(request: NextRequest) {
   try {
     const session = await requireAuth();
+    const userExists = await prisma.user.findUnique({
+      where: { id: session.id },
+      select: { id: true },
+    });
+    if (!userExists) {
+      return NextResponse.json(
+        { error: "Your session is no longer valid. Please sign in again." },
+        { status: 401 }
+      );
+    }
     const body = await request.json();
     const subscription = body?.subscription;
 

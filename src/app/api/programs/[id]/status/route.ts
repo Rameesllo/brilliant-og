@@ -67,6 +67,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         .filter((userId): userId is string => Boolean(userId)),
       programTitle: updated.title,
       programId: updated.id,
+      expectedGuests: updated.expectedGuests,
+      requiredStaffCount: updated.requiredStaffCount,
       status,
     }));
 
