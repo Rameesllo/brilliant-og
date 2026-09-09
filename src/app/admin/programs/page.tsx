@@ -13,7 +13,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatDate, formatCurrency } from "@/lib/utils";
-import { Plus, Filter, Calendar, Users, Eye, RefreshCw } from "lucide-react";
+import { Plus, Filter, Calendar, Users, Eye, RefreshCw, Trash2 } from "lucide-react";
 import { CreateProgramModal } from "@/components/modals/CreateProgramModal";
 
 interface ProgramItem {
@@ -92,6 +92,17 @@ export default function AdminProgramsPage() {
   useEffect(() => {
     fetchPrograms();
   }, [fetchPrograms]);
+
+  const handleDelete = async (program: ProgramItem) => {
+    if (!window.confirm(`Delete ${program.title}? Programs linked to invoices or expenses cannot be deleted.`)) return;
+    const response = await fetch(`/api/programs/${program.id}`, { method: "DELETE" });
+    const data = await response.json();
+    if (!response.ok) {
+      setError(data.error || "Unable to delete program");
+      return;
+    }
+    fetchPrograms();
+  };
 
   const getStatusBadge = (status: ProgramItem["status"]) => {
     switch (status) {
@@ -324,6 +335,15 @@ export default function AdminProgramsPage() {
                                   <Eye className="w-3.5 h-3.5" /> Manage
                                 </Button>
                               </Link>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs text-[#DC2626]"
+                                onClick={() => handleDelete(prog)}
+                                title="Delete program"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>

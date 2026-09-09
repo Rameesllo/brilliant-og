@@ -10,7 +10,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { SearchInput } from "@/components/ui/SearchInput";
 import { Pagination } from "@/components/ui/Pagination";
 import { formatCurrency } from "@/lib/utils";
-import { Plus, Users, DollarSign, Clock, AlertCircle, Loader2, ArrowUpRight, CheckCircle2 } from "lucide-react";
+import { Plus, Users, DollarSign, Clock, AlertCircle, Loader2, ArrowUpRight, CheckCircle2, Trash2 } from "lucide-react";
 
 interface CustomerRecord {
   id: string;
@@ -96,6 +96,17 @@ export default function AdminCustomersPage() {
   const handleStatusFilter = (val: string) => {
     setStatusFilter(val);
     setCurrentPage(1);
+  };
+
+  const handleDelete = async (customer: CustomerRecord) => {
+    if (!window.confirm(`Delete ${customer.name}? Customers with related records cannot be deleted.`)) return;
+    const response = await fetch(`/api/customers/${customer.id}`, { method: "DELETE" });
+    const data = await response.json();
+    if (!response.ok) {
+      setError(data.error || "Unable to delete customer");
+      return;
+    }
+    fetchCustomers(currentPage, search, statusFilter);
   };
 
   const getLedgerBadgeVariant = (status: "PAID" | "PENDING" | "OVERDUE"): BadgeVariant => {
@@ -347,6 +358,15 @@ export default function AdminCustomersPage() {
                               Edit
                             </Button>
                           </Link>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs text-[#DC2626]"
+                            onClick={() => handleDelete(cust)}
+                            title="Delete customer"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

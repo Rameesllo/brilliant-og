@@ -24,6 +24,7 @@ import {
   CheckCircle2,
   RefreshCw,
   Filter,
+  Trash2,
 } from "lucide-react";
 
 interface PaymentRecord {
@@ -196,6 +197,17 @@ export default function AdminPaymentsPage() {
     } finally {
       setIsSubmittingPayout(false);
     }
+  };
+
+  const handleDelete = async (payment: PaymentRecord) => {
+    if (!window.confirm(`Delete payment ${payment.transactionNumber}? This cannot be undone.`)) return;
+    const response = await fetch(`/api/payments/${payment.id}`, { method: "DELETE" });
+    const data = await response.json();
+    if (!response.ok) {
+      setError(data.error || "Unable to delete payment");
+      return;
+    }
+    fetchPayments();
   };
 
   return (
@@ -519,11 +531,22 @@ export default function AdminPaymentsPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Link href={`/admin/employees/${p.employee.id}`}>
-                            <Button variant="ghost" size="sm" className="h-7 text-xs">
-                              View Ledger
+                          <div className="flex items-center justify-end gap-1">
+                            <Link href={`/admin/employees/${p.employee.id}`}>
+                              <Button variant="ghost" size="sm" className="h-7 text-xs">
+                                View Ledger
+                              </Button>
+                            </Link>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-[#DC2626]"
+                              onClick={() => handleDelete(p)}
+                              title="Delete payment"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
-                          </Link>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

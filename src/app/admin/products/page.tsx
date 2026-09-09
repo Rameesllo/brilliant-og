@@ -16,6 +16,7 @@ import {
   Loader2,
   AlertCircle,
   ArrowUpRight,
+  Trash2,
 } from "lucide-react";
 import { AddProductModal } from "@/components/modals/AddProductModal";
 
@@ -92,6 +93,17 @@ export default function AdminProductsPage() {
   const handleTypeChange = (val: string) => {
     setTypeFilter(val);
     setCurrentPage(1);
+  };
+
+  const handleDelete = async (product: ProductRecord) => {
+    if (!window.confirm(`Delete ${product.name}? Products used in invoices will be deactivated instead.`)) return;
+    const response = await fetch(`/api/products/${product.id}`, { method: "DELETE" });
+    const data = await response.json();
+    if (!response.ok) {
+      setError(data.error || "Unable to delete product");
+      return;
+    }
+    fetchProducts(currentPage, search, typeFilter);
   };
 
   const getTypeBadgeVariant = (type: string): BadgeVariant => {
@@ -273,6 +285,15 @@ export default function AdminProductsPage() {
                               Edit
                             </Button>
                           </Link>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs text-[#DC2626]"
+                            onClick={() => handleDelete(item)}
+                            title="Delete product"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, AuthError } from "@/lib/auth";
+import { Prisma } from "@prisma/client";
 
 /**
  * GET /api/customers/[id]
@@ -271,5 +272,56 @@ export async function PATCH(
       { error: "An unexpected error occurred while updating customer" },
       { status: 500 }
     );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await requireAdmin();
+    const { id } = await params;
+    const customer = await prisma.customer.findUnique({
+      where: { id },
+      include: {
+        _count: { select: { programs: true, invoices: true, payments: true } },
+      },
+    });
+
+    if (!customer) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+    if (customer._count.programs || customer._count.invoices || customer._count.payments) {
+      return NextResponse.json(
+        { error: "Cannot delete a customer with programs, invoices, or payment receipts. Deactivate the customer instead." },
+        { status: 400 }
+      );
+    }
+
+    await prisma.customer.delete({ where: { id } });
+    try {
+      await prisma.activityLog.create({
+        data: {
+          userId: session.id,
+          action: "CUSTOMER_DELETED",
+          entityType: "CUSTOMER",
+          entityId: id,
+          details: { message: `Deleted customer ${customer.name} (${customer.code})` },
+        },
+      });
+    } catch (logError) {
+      console.error("Failed to record CUSTOMER_DELETED activity:", logError);
+    }
+
+    return NextResponse.json({ deleted: true, message: "Customer deleted successfully" });
+  } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
+      return NextResponse.json(
+        { error: "This customer still has related records and cannot be deleted. Deactivate the customer instead." },
+        { status: 400 }
+      );
+    }
+    console.error("Error deleting customer:", error);
+    return NextResponse.json({ error: "Unable to delete customer" }, { status: 500 });
   }
 }

@@ -198,9 +198,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid email address format" }, { status: 400 });
       }
 
-      // Check duplicate email in User or Employee
-      const existingUser = await prisma.user.findUnique({ where: { email: cleanEmail } });
-      if (existingUser) {
+      // An employee row may have been deleted directly from the database while
+      // its employee login remains. That orphaned employee login can be reused.
+      const existingUser = await prisma.user.findUnique({
+        where: { email: cleanEmail },
+        select: { role: true, employeeProfile: { select: { id: true } } },
+      });
+      if (existingUser && (existingUser.role !== Role.EMPLOYEE || existingUser.employeeProfile)) {
         return NextResponse.json(
           { error: "A user account with this email address already exists" },
           { status: 409 }
@@ -232,6 +236,7 @@ export async function POST(request: NextRequest) {
 
     // Optional user account validation
     let userId: string | null = null;
+    let orphanedEmployeeUser: { id: string } | null = null;
     if (createAccount) {
       if (!cleanEmail) {
         return NextResponse.json(
@@ -246,18 +251,33 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const passwordHash = await hashPassword(password);
-      const newUser = await prisma.user.create({
-        data: {
-          email: cleanEmail,
-          passwordHash,
-          name: name.trim(),
-          role: Role.EMPLOYEE,
-          phone: phone.trim(),
-          isActive: status === "ACTIVE",
-        },
+      const existingUser = await prisma.user.findUnique({
+        where: { email: cleanEmail },
+        select: { id: true, role: true, employeeProfile: { select: { id: true } } },
       });
-      userId = newUser.id;
+      if (existingUser) {
+        if (existingUser.role !== Role.EMPLOYEE || existingUser.employeeProfile) {
+          return NextResponse.json(
+            { error: "A user account with this email address already exists" },
+            { status: 409 }
+          );
+        }
+        orphanedEmployeeUser = { id: existingUser.id };
+        userId = existingUser.id;
+      } else {
+        const passwordHash = await hashPassword(password);
+        const newUser = await prisma.user.create({
+          data: {
+            email: cleanEmail,
+            passwordHash,
+            name: name.trim(),
+            role: Role.EMPLOYEE,
+            phone: phone.trim(),
+            isActive: status === "ACTIVE",
+          },
+        });
+        userId = newUser.id;
+      }
     }
 
     // Generate unique employee code: EMP-101, EMP-102...
@@ -283,23 +303,38 @@ export async function POST(request: NextRequest) {
       codeExists = await prisma.employee.findUnique({ where: { code: generatedCode } });
     }
 
-    // Create Employee record
-    const createdEmployee = await prisma.employee.create({
-      data: {
-        code: generatedCode,
-        name: name.trim(),
-        phone: phone.trim(),
-        email: cleanEmail,
-        address: address?.trim() || null,
-        emergencyContact: emergencyContact?.trim() || null,
-        employeeTypeId,
-        wagePerEvent: numWagePerEvent,
-        status: (status as EmployeeStatus) || EmployeeStatus.ACTIVE,
-        userId,
-      },
-      include: {
-        employeeType: true,
-      },
+    // Create Employee record and refresh a reusable orphaned login together.
+    const createdEmployee = await prisma.$transaction(async (tx) => {
+      if (orphanedEmployeeUser) {
+        const passwordHash = await hashPassword(password);
+        await tx.user.update({
+          where: { id: orphanedEmployeeUser.id },
+          data: {
+            passwordHash,
+            name: name.trim(),
+            phone: phone.trim(),
+            isActive: status === "ACTIVE",
+          },
+        });
+      }
+
+      return tx.employee.create({
+        data: {
+          code: generatedCode,
+          name: name.trim(),
+          phone: phone.trim(),
+          email: cleanEmail,
+          address: address?.trim() || null,
+          emergencyContact: emergencyContact?.trim() || null,
+          employeeTypeId,
+          wagePerEvent: numWagePerEvent,
+          status: (status as EmployeeStatus) || EmployeeStatus.ACTIVE,
+          userId,
+        },
+        include: {
+          employeeType: true,
+        },
+      });
     });
 
     // Record ActivityLog

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession, requireAdmin, AuthError } from "@/lib/auth";
-import { ProgramType, ProgramStatus } from "@prisma/client";
+import { ProgramType, ProgramStatus, Prisma } from "@prisma/client";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -237,6 +237,51 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       { error: "An unexpected error occurred updating program" },
       { status: 500 }
     );
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  try {
+    const session = await requireAdmin();
+    const { id } = await params;
+    const program = await prisma.program.findUnique({
+      where: { id },
+      include: { _count: { select: { invoices: true, expenses: true } } },
+    });
+
+    if (!program) return NextResponse.json({ error: "Program not found" }, { status: 404 });
+    if (program._count.invoices || program._count.expenses) {
+      return NextResponse.json(
+        { error: "Cannot delete a program linked to invoices or expenses. Mark it cancelled instead." },
+        { status: 400 }
+      );
+    }
+
+    await prisma.program.delete({ where: { id } });
+    try {
+      await prisma.activityLog.create({
+        data: {
+          userId: session.id,
+          action: "PROGRAM_DELETED",
+          entityType: "Program",
+          entityId: id,
+          details: { message: `Deleted program ${program.title} (${program.code})` },
+        },
+      });
+    } catch (logError) {
+      console.error("Failed to record PROGRAM_DELETED activity:", logError);
+    }
+    return NextResponse.json({ deleted: true, message: "Program deleted successfully" });
+  } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
+      return NextResponse.json(
+        { error: "This program still has related records and cannot be deleted. Cancel it instead." },
+        { status: 400 }
+      );
+    }
+    console.error("Error deleting program:", error);
+    return NextResponse.json({ error: "Unable to delete program" }, { status: 500 });
   }
 }
 
