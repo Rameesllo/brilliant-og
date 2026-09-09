@@ -387,7 +387,7 @@ export default function AdminSettingsPage() {
                   onChange={(e) => setSettings({ ...settings, termsAndConditions: e.target.value })}
                 />
                 <p className="text-[11px] text-[#94A3B8] mt-1">
-                  Appears as default payment terms on newly generated catering client invoices.
+                  Appears as default payment terms on newly generated catering client invoices
                 </p>
               </div>
             </CardContent>
